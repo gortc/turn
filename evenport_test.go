@@ -6,6 +6,16 @@ import (
 )
 
 func TestEvenPort(t *testing.T) {
+	t.Run("String", func(t *testing.T) {
+		p := EvenPort{}
+		if p.String() != "reserve: false" {
+			t.Errorf("bad value %q for reselve: false", p)
+		}
+		p.ReservePort = true
+		if p.String() != "reserve: true" {
+			t.Errorf("bad value %q for reselve: true", p)
+		}
+	})
 	t.Run("False", func(t *testing.T) {
 		m := new(stun.Message)
 		p := EvenPort{
