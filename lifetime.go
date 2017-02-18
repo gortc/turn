@@ -6,11 +6,6 @@ import (
 	"github.com/ernado/stun"
 )
 
-// NewLifetime initialises LIFETIME attribute with duration.
-func NewLifetime(d time.Duration) Lifetime {
-	return Lifetime{Duration: d}
-}
-
 // Lifetime represents LIFETIME attribute.
 //
 // The LIFETIME attribute represents the duration for which the server

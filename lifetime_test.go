@@ -82,7 +82,7 @@ func TestLifetime(t *testing.T) {
 	})
 	t.Run("AddTo", func(t *testing.T) {
 		m := new(stun.Message)
-		l := NewLifetime(time.Second * 10)
+		l := Lifetime{time.Second * 10}
 		if err := l.AddTo(m); err != nil {
 			t.Error(err)
 		}
@@ -113,7 +113,7 @@ func TestLifetime(t *testing.T) {
 				m.Add(stun.AttrLifetime, []byte{1, 2, 3})
 				if err, ok := nHandle.GetFrom(m).(*BadAttrLength); !ok {
 					t.Errorf("%v should be *BadAttrLength", err)
-				}				
+				}
 			})
 		})
 	})
