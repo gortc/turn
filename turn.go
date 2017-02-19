@@ -25,3 +25,11 @@ func (e BadAttrLength) Error() string {
 		e.Expected,
 	)
 }
+
+// Default ports for TURN from RFC 5766 Section 4.
+const (
+	// DefaultPort for TURN is same as STUN.
+	DefaultPort = stun.DefaultPort
+	// DefaultTLSPort is for TURN over TLS.
+	DefaultTLSPort = 5349
+)
