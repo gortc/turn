@@ -18,6 +18,10 @@ type PeerAddress struct {
 	Port int
 }
 
+func (a PeerAddress) String() string {
+	return stun.XORMappedAddress(a).String()
+}
+
 // AddTo adds XOR-PEER-ADDRESS to message.
 func (a *PeerAddress) AddTo(m *stun.Message) error {
 	return (*stun.XORMappedAddress)(a).AddToAs(m, stun.AttrXORPeerAddress)

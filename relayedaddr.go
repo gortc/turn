@@ -18,6 +18,10 @@ type RelayedAddress struct {
 	Port int
 }
 
+func (a RelayedAddress) String() string {
+	return (stun.XORMappedAddress)(a).String()
+}
+
 // AddTo adds XOR-PEER-ADDRESS to message.
 func (a *RelayedAddress) AddTo(m *stun.Message) error {
 	return (*stun.XORMappedAddress)(a).AddToAs(m, stun.AttrXORRelayedAddress)
