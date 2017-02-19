@@ -6,6 +6,11 @@ import (
 	"github.com/ernado/stun"
 )
 
+// DefaultLifetime in RFC 5766 is 10 minutes.
+//
+// https://trac.tools.ietf.org/html/rfc5766#section-2.2
+const DefaultLifetime = time.Minute * 10
+
 // Lifetime represents LIFETIME attribute.
 //
 // The LIFETIME attribute represents the duration for which the server
