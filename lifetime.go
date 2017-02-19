@@ -25,7 +25,7 @@ type Lifetime struct {
 }
 
 // uint32 seconds
-const lifetimeSize = 32
+const lifetimeSize = 4 // 4 bytes, 32 bits
 
 // AddTo adds LIFETIME to message.
 func (l Lifetime) AddTo(m *stun.Message) error {
