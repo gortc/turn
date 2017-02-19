@@ -1,6 +1,9 @@
 package turn
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ernado/stun"
@@ -22,4 +25,22 @@ func TestBadAttrLength_Error(t *testing.T) {
 	if b.Error() != "incorrect length for DATA: got 11, expected 100" {
 		t.Error("Bad value", b.Error())
 	}
+}
+
+func loadData(tb testing.TB, name string) []byte {
+	name = filepath.Join("testdata", name)
+	f, err := os.Open(name)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	defer func() {
+		if errClose := f.Close(); errClose != nil {
+			tb.Fatal(errClose)
+		}
+	}()
+	v, err := ioutil.ReadAll(f)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return v
 }
