@@ -2,8 +2,9 @@ package turn
 
 import (
 	"bytes"
-	"github.com/ernado/stun"
 	"testing"
+
+	"github.com/ernado/stun"
 )
 
 func TestReservationToken(t *testing.T) {

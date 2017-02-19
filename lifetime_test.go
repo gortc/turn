@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"fmt"
-	"github.com/ernado/stun"
 	"time"
+
+	"github.com/ernado/stun"
 )
 
 func ExampleLifetime() {

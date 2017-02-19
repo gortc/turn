@@ -1,9 +1,10 @@
 package turn
 
 import (
-	"github.com/ernado/stun"
-	"testing"
 	"bytes"
+	"testing"
+
+	"github.com/ernado/stun"
 )
 
 func BenchmarkData(b *testing.B) {

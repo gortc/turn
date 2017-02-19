@@ -1,8 +1,9 @@
 package turn
 
 import (
-	"github.com/ernado/stun"
 	"testing"
+
+	"github.com/ernado/stun"
 )
 
 func TestEvenPort(t *testing.T) {
