@@ -10,7 +10,7 @@ import (
 
 	"github.com/ernado/stun"
 	"github.com/ernado/turn"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 var (
@@ -45,10 +45,13 @@ func isErr(m *stun.Message) bool {
 func main() {
 	flag.Parse()
 	var (
-		req    = new(stun.Message)
-		res    = new(stun.Message)
-		logger = zap.New(zap.NewTextEncoder(zap.TextNoTime()))
+		req = new(stun.Message)
+		res = new(stun.Message)
 	)
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
 	if flag.Arg(0) == "peer" {
 		_, port, err := net.SplitHostPort(*peer)
 		logger.Info("running in peer mode")
@@ -109,14 +112,7 @@ func main() {
 	)
 
 	// Crafting allocation request.
-	req.NewTransactionID()
-	req.Type = allocReq
-	if err := reqTransport.AddTo(req); err != nil {
-		logger.Fatal("failed to construct allocation request",
-			zap.Error(err),
-		)
-	}
-	req.WriteHeader()
+	req.Build(stun.TransactionID, allocReq, reqTransport)
 	if _, err := req.WriteTo(c); err != nil {
 		logger.Fatal("failed to write allocation request",
 			zap.Error(err),
@@ -170,16 +166,11 @@ func main() {
 	logger.Info("using integrity", zap.Stringer("i", credentials))
 
 	// Constructing allocate request with integrity
-	req.Reset()
-	req.NewTransactionID()
-	reqTransport.AddTo(req)
-	realm.AddTo(req)
-	stun.NewUsername(*username).AddTo(req)
-	nonce.AddTo(req)
-	req.WriteHeader()
-	credentials.AddTo(req)
-	req.WriteLength()
-
+	if err := req.Build(stun.TransactionID, reqTransport, realm,
+		stun.NewUsername(*username), nonce, credentials,
+	); err != nil {
+		logger.Fatal("failed to build alloc request", zap.Error(err))
+	}
 	// Sending new request to server.
 	if _, err := req.WriteTo(c); err != nil {
 		logger.Fatal("failed to send alloc request", zap.Error(err))
@@ -221,21 +212,16 @@ func main() {
 		Port: echoAddr.Port,
 	}
 	logger.Info("peer address", zap.Stringer("addr", peerAddr))
-	req.Reset()
-	req.NewTransactionID()
-	if err := peerAddr.AddTo(req); err != nil {
-		panic(err)
+	if err := req.Build(stun.TransactionID,
+		stun.NewType(stun.ClassRequest, stun.MethodCreatePermission),
+		peerAddr,
+		stun.Realm(realmStr),
+		stun.Nonce(nonceStr),
+		stun.Username(*username),
+		credentials,
+	); err != nil {
+		logger.Fatal("failed to build", zap.Error(err))
 	}
-	req.Type = stun.MessageType{
-		Class:  stun.ClassRequest,
-		Method: stun.MethodCreatePermission,
-	}
-	stun.Realm(realmStr).AddTo(req)
-	stun.Username(*username).AddTo(req)
-	stun.Nonce(nonceStr).AddTo(req)
-	req.WriteHeader()
-	credentials.AddTo(req)
-	req.WriteLength()
 	if _, err := req.WriteTo(c); err != nil {
 		logger.Fatal("failed to write permission request", zap.Error(err))
 	}
@@ -253,21 +239,20 @@ func main() {
 		logger.Error("failed to check integrity", zap.Error(err))
 	}
 
-	// Allocation succeed.
-	// Sending data to echo server.
-	// can be as resetTo(type, attrs)?
-	req.Reset()
-	req.NewTransactionID()
-	req.Type = stun.MessageType{
-		Method: stun.MethodSend,
-		Class:  stun.ClassIndication,
-	}
 	var (
 		sentData = turn.Data("Hello world!")
 	)
-	sentData.AddTo(req)
-	peerAddr.AddTo(req)
-	req.WriteHeader()
+	// Allocation succeed.
+	// Sending data to echo server.
+	// can be as resetTo(type, attrs)?
+	if err := req.Build(stun.TransactionID,
+		stun.NewType(stun.ClassIndication, stun.MethodSend),
+		sentData,
+		peerAddr,
+		stun.Fingerprint,
+	); err != nil {
+		logger.Fatal("failed to build", zap.Error(err))
+	}
 	if _, err := req.WriteTo(c); err != nil {
 		panic(err)
 	}
@@ -291,22 +276,21 @@ func main() {
 	logger.Info("got data", zap.String("v", string(data)))
 	if bytes.Equal(data, sentData) {
 		logger.Info("OK")
+	} else {
+		logger.Info("DATA missmatch")
 	}
 
 	// De-allocating.
-	req.Reset()
-	req.NewTransactionID()
-	req.Type = stun.MessageType{
-		Method: stun.MethodRefresh,
-		Class:  stun.ClassRequest,
+	if err := req.Build(stun.TransactionID,
+		stun.NewType(stun.ClassRequest, stun.MethodRefresh),
+		stun.Realm(realmStr),
+		stun.Username(*username),
+		stun.Nonce(nonceStr),
+		turn.Lifetime{},
+		credentials,
+	); err != nil {
+		logger.Fatal("failed to build", zap.Error(err))
 	}
-	stun.Realm(realmStr).AddTo(req)
-	stun.Username(*username).AddTo(req)
-	stun.Nonce(nonceStr).AddTo(req)
-	turn.Lifetime{}.AddTo(req) // zero lifetime
-	req.WriteHeader()
-	credentials.AddTo(req)
-	req.WriteLength()
 	if _, err := req.WriteTo(c); err != nil {
 		panic(err)
 	}
