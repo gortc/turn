@@ -23,8 +23,8 @@ func (a RelayedAddress) String() string {
 }
 
 // AddTo adds XOR-PEER-ADDRESS to message.
-func (a *RelayedAddress) AddTo(m *stun.Message) error {
-	return (*stun.XORMappedAddress)(a).AddToAs(m, stun.AttrXORRelayedAddress)
+func (a RelayedAddress) AddTo(m *stun.Message) error {
+	return (stun.XORMappedAddress)(a).AddToAs(m, stun.AttrXORRelayedAddress)
 }
 
 // AddTo decodes XOR-PEER-ADDRESS from message.
