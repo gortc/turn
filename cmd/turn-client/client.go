@@ -286,7 +286,7 @@ func main() {
 		stun.Realm(realmStr),
 		stun.Username(*username),
 		stun.Nonce(nonceStr),
-		turn.Lifetime{},
+		turn.ZeroLifetime,
 		credentials,
 	); err != nil {
 		logger.Fatal("failed to build", zap.Error(err))

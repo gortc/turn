@@ -53,3 +53,7 @@ func (l *Lifetime) GetFrom(m *stun.Message) error {
 	l.Duration = time.Second * time.Duration(seconds)
 	return nil
 }
+
+// ZeroLifetime is shorthand for setting zero lifetime
+// that indicates to close allocation.
+var ZeroLifetime stun.Setter = Lifetime{}
