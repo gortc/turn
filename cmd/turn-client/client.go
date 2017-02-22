@@ -44,6 +44,7 @@ func isErr(m *stun.Message) bool {
 }
 
 func do(logger *zap.Logger, req, res *stun.Message, c *net.UDPConn, attrs ...stun.Setter) error {
+	start := time.Now()
 	if err := req.Build(attrs...); err != nil {
 		logger.Error("failed to build", zap.Error(err))
 		return err
@@ -65,7 +66,10 @@ func do(logger *zap.Logger, req, res *stun.Message, c *net.UDPConn, attrs ...stu
 			zap.Error(err), zap.Stringer("m", req),
 		)
 	}
-	logger.Info("got message", zap.Stringer("m", res))
+	logger.Info("got message",
+		zap.Stringer("m", res),
+		zap.Duration("rtt", time.Since(start)),
+	)
 	return err
 }
 
