@@ -30,6 +30,15 @@ func (e BadAttrLength) Error() string {
 const (
 	// DefaultPort for TURN is same as STUN.
 	DefaultPort = stun.DefaultPort
-	// DefaultTLSPort is for TURN over TLS.
-	DefaultTLSPort = 5349
+	// DefaultTLSPort is for TURN over TLS and is same as STUN.
+	DefaultTLSPort = stun.DefaultTLSPort
+)
+
+var (
+	// CreatePermissionRequest is shorthand for create permission request type.
+	CreatePermissionRequest = stun.NewType(stun.MethodCreatePermission, stun.ClassRequest)
+	// SendIndication is shorthand for send indication message type.
+	SendIndication = stun.NewType(stun.MethodSend, stun.ClassIndication)
+	// RefreshRequest is shorthand for refresh request message type.
+	RefreshRequest = stun.NewType(stun.MethodRefresh, stun.ClassRequest)
 )

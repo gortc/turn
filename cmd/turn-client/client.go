@@ -213,7 +213,7 @@ func main() {
 	}
 	logger.Info("peer address", zap.Stringer("addr", peerAddr))
 	if err := req.Build(stun.TransactionID,
-		stun.NewType(stun.ClassRequest, stun.MethodCreatePermission),
+		turn.CreatePermissionRequest,
 		peerAddr,
 		stun.Realm(realmStr),
 		stun.Nonce(nonceStr),
@@ -246,7 +246,7 @@ func main() {
 	// Sending data to echo server.
 	// can be as resetTo(type, attrs)?
 	if err := req.Build(stun.TransactionID,
-		stun.NewType(stun.ClassIndication, stun.MethodSend),
+		turn.SendIndication,
 		sentData,
 		peerAddr,
 		stun.Fingerprint,
@@ -282,7 +282,7 @@ func main() {
 
 	// De-allocating.
 	if err := req.Build(stun.TransactionID,
-		stun.NewType(stun.ClassRequest, stun.MethodRefresh),
+		turn.RefreshRequest,
 		stun.Realm(realmStr),
 		stun.Username(*username),
 		stun.Nonce(nonceStr),
