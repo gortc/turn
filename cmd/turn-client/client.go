@@ -11,6 +11,7 @@ import (
 	"github.com/ernado/stun"
 	"github.com/ernado/turn"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -42,13 +43,47 @@ func isErr(m *stun.Message) bool {
 	return m.Type.Class == stun.ClassErrorResponse
 }
 
+func do(logger *zap.Logger, req, res *stun.Message, c *net.UDPConn, attrs ...stun.Setter) error {
+	if err := req.Build(attrs...); err != nil {
+		logger.Error("failed to build", zap.Error(err))
+		return err
+	}
+	if _, err := req.WriteTo(c); err != nil {
+		logger.Error("failed to write",
+			zap.Error(err), zap.Stringer("m", req),
+		)
+		return err
+	}
+	logger.Info("sent message", zap.Stringer("m", req))
+	if cap(res.Raw) < 800 {
+		res.Raw = make([]byte, 0, 1024)
+	}
+	c.SetReadDeadline(time.Now().Add(time.Second * 2))
+	_, err := res.ReadFrom(c)
+	if err != nil {
+		logger.Error("failed to read",
+			zap.Error(err), zap.Stringer("m", req),
+		)
+	}
+	logger.Info("got message", zap.Stringer("m", res))
+	return err
+}
+
 func main() {
 	flag.Parse()
 	var (
 		req = new(stun.Message)
 		res = new(stun.Message)
 	)
-	logger, err := zap.NewDevelopment()
+	logCfg := zap.NewDevelopmentConfig()
+	logCfg.DisableCaller = true
+	logCfg.DisableStacktrace = true
+	start := time.Now()
+	logCfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		d := int64(time.Since(start).Nanoseconds() / 1e6)
+		enc.AppendString(fmt.Sprintf("%04d", d))
+	}
+	logger, err := logCfg.Build()
 	if err != nil {
 		panic(err)
 	}
@@ -106,26 +141,19 @@ func main() {
 			zap.Error(err),
 		)
 	}
-	logger.Info("dial",
+	logger.Info("dial server",
 		zap.Stringer("laddr", c.LocalAddr()),
 		zap.Stringer("raddr", c.RemoteAddr()),
 	)
 
 	// Crafting allocation request.
-	req.Build(stun.TransactionID, allocReq, reqTransport)
-	if _, err := req.WriteTo(c); err != nil {
-		logger.Fatal("failed to write allocation request",
-			zap.Error(err),
-		)
+	if err := do(logger, req, res, c,
+		stun.TransactionID,
+		allocReq,
+		reqTransport,
+	); err != nil {
+		logger.Fatal("do failed", zap.Error(err))
 	}
-	// Reading allocation response.
-	res.Raw = make([]byte, 0, 1024)
-	if _, err := res.ReadFrom(c); err != nil {
-		logger.Fatal("failed to read allocation request",
-			zap.Error(err),
-		)
-	}
-	logger.Info("got", zap.Stringer("m", res))
 	var (
 		code  stun.ErrorCodeAttribute
 		nonce stun.Nonce
@@ -156,7 +184,7 @@ func main() {
 	}
 	realmStr := realm.String()
 	nonceStr := nonce.String()
-	logger.Info("got unauth error",
+	logger.Info("got credentials",
 		zap.Stringer("nonce", nonce),
 		zap.Stringer("realm", realm),
 	)
@@ -166,23 +194,11 @@ func main() {
 	logger.Info("using integrity", zap.Stringer("i", credentials))
 
 	// Constructing allocate request with integrity
-	if err := req.Build(stun.TransactionID, reqTransport, realm,
+	if err := do(logger, req, res, c, stun.TransactionID, reqTransport, realm,
 		stun.NewUsername(*username), nonce, credentials,
 	); err != nil {
-		logger.Fatal("failed to build alloc request", zap.Error(err))
+		logger.Fatal("failed to do request", zap.Error(err))
 	}
-	// Sending new request to server.
-	if _, err := req.WriteTo(c); err != nil {
-		logger.Fatal("failed to send alloc request", zap.Error(err))
-	}
-
-	// Reading response.
-	if _, err := res.ReadFrom(c); err != nil {
-		logger.Fatal("failed to read allocation request",
-			zap.Error(err),
-		)
-	}
-	logger.Info("got", zap.Stringer("m", res))
 	if isErr(res) {
 		code.GetFrom(res)
 		logger.Fatal("got error response", zap.Stringer("err", code))
@@ -212,7 +228,7 @@ func main() {
 		Port: echoAddr.Port,
 	}
 	logger.Info("peer address", zap.Stringer("addr", peerAddr))
-	if err := req.Build(stun.TransactionID,
+	if err := do(logger, req, res, c, stun.TransactionID,
 		turn.CreatePermissionRequest,
 		peerAddr,
 		stun.Realm(realmStr),
@@ -220,17 +236,8 @@ func main() {
 		stun.Username(*username),
 		credentials,
 	); err != nil {
-		logger.Fatal("failed to build", zap.Error(err))
+		logger.Fatal("failed to do request", zap.Error(err))
 	}
-	if _, err := req.WriteTo(c); err != nil {
-		logger.Fatal("failed to write permission request", zap.Error(err))
-	}
-
-	// Reading response.
-	if _, err := res.ReadFrom(c); err != nil {
-		logger.Fatal("failed to read response", zap.Error(err))
-	}
-	logger.Info("got", zap.Stringer("m", res))
 	if isErr(res) {
 		code.GetFrom(res)
 		logger.Fatal("failed to allocate", zap.Stringer("err", code))
@@ -238,14 +245,13 @@ func main() {
 	if err := credentials.Check(res); err != nil {
 		logger.Error("failed to check integrity", zap.Error(err))
 	}
-
 	var (
 		sentData = turn.Data("Hello world!")
 	)
 	// Allocation succeed.
 	// Sending data to echo server.
 	// can be as resetTo(type, attrs)?
-	if err := req.Build(stun.TransactionID,
+	if err := do(logger, req, res, c, stun.TransactionID,
 		turn.SendIndication,
 		sentData,
 		peerAddr,
@@ -253,18 +259,7 @@ func main() {
 	); err != nil {
 		logger.Fatal("failed to build", zap.Error(err))
 	}
-	if _, err := req.WriteTo(c); err != nil {
-		panic(err)
-	}
-	logger.Info("sent", zap.Stringer("m", req))
 	logger.Info("sent data", zap.String("v", string(sentData)))
-
-	// Reading response.
-	c.SetReadDeadline(time.Now().Add(time.Second * 2))
-	if _, err := res.ReadFrom(c); err != nil {
-		logger.Fatal("failed to read response", zap.Error(err))
-	}
-	logger.Info("got", zap.Stringer("m", res))
 	if isErr(res) {
 		code.GetFrom(res)
 		logger.Fatal("got error response", zap.Stringer("err", code))
@@ -281,7 +276,7 @@ func main() {
 	}
 
 	// De-allocating.
-	if err := req.Build(stun.TransactionID,
+	if err := do(logger, req, res, c, stun.TransactionID,
 		turn.RefreshRequest,
 		stun.Realm(realmStr),
 		stun.Username(*username),
@@ -289,19 +284,8 @@ func main() {
 		turn.ZeroLifetime,
 		credentials,
 	); err != nil {
-		logger.Fatal("failed to build", zap.Error(err))
+		logger.Fatal("failed to do", zap.Error(err))
 	}
-	if _, err := req.WriteTo(c); err != nil {
-		panic(err)
-	}
-	logger.Info("sent", zap.Stringer("m", req))
-
-	// Reading response.
-	c.SetReadDeadline(time.Now().Add(time.Second * 2))
-	if _, err := res.ReadFrom(c); err != nil {
-		logger.Fatal("failed to read response", zap.Error(err))
-	}
-	logger.Info("got", zap.Stringer("m", res))
 	if isErr(res) {
 		code.GetFrom(res)
 		logger.Fatal("got error response", zap.Stringer("err", code))
