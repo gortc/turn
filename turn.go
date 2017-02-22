@@ -35,6 +35,8 @@ const (
 )
 
 var (
+	// AllocateRequest is shorthand for allocation request message type.
+	AllocateRequest = stun.NewType(stun.MethodAllocate, stun.ClassRequest)
 	// CreatePermissionRequest is shorthand for create permission request type.
 	CreatePermissionRequest = stun.NewType(stun.MethodCreatePermission, stun.ClassRequest)
 	// SendIndication is shorthand for send indication message type.

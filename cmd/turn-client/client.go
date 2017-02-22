@@ -25,14 +25,6 @@ var (
 	)
 	username = flag.String("username", "ernado", "username")
 	password = flag.String("password", "", "password")
-
-	allocReq = stun.MessageType{
-		Class:  stun.ClassRequest,
-		Method: stun.MethodAllocate,
-	}
-	reqTransport = turn.RequestedTransport{
-		Protocol: turn.ProtoUDP,
-	}
 )
 
 const (
@@ -153,8 +145,8 @@ func main() {
 	// Crafting allocation request.
 	if err := do(logger, req, res, c,
 		stun.TransactionID,
-		allocReq,
-		reqTransport,
+		turn.AllocateRequest,
+		turn.RequestedTransportUDP,
 	); err != nil {
 		logger.Fatal("do failed", zap.Error(err))
 	}
@@ -198,7 +190,8 @@ func main() {
 	logger.Info("using integrity", zap.Stringer("i", credentials))
 
 	// Constructing allocate request with integrity
-	if err := do(logger, req, res, c, stun.TransactionID, reqTransport, realm,
+	if err := do(logger, req, res, c, stun.TransactionID,
+		turn.RequestedTransportUDP, realm,
 		stun.NewUsername(*username), nonce, credentials,
 	); err != nil {
 		logger.Fatal("failed to do request", zap.Error(err))
