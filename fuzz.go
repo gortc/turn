@@ -4,7 +4,7 @@ package turn
 
 import (
 	"fmt"
-	"github.com/ernado/stun"
+	"github.com/gortc/stun"
 )
 
 type attr interface {

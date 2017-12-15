@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/ernado/stun"
+	"github.com/gortc/stun"
 )
 
 // bin is shorthand for binary.BigEndian.

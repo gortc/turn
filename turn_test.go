@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ernado/stun"
+	"github.com/gortc/stun"
 )
 
 const allocRuns = 10

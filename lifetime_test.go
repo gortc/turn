@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ernado/stun"
+	"github.com/gortc/stun"
 )
 
 func ExampleLifetime() {

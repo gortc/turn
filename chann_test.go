@@ -3,7 +3,7 @@ package turn
 import (
 	"testing"
 
-	"github.com/ernado/stun"
+	"github.com/gortc/stun"
 )
 
 func BenchmarkChannelNumber(b *testing.B) {

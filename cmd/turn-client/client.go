@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/ernado/stun"
-	"github.com/ernado/turn"
+	"github.com/gortc/stun"
+	"github.com/gortc/turn"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

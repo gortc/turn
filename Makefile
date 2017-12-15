@@ -10,7 +10,7 @@ bench:
 bench-record:
 	$(GO) test -bench . > "benchmarks/turn-go-$(GO_VERSION).txt"
 fuzz-prepare-setters:
-	go-fuzz-build -func FuzzSetters -o turn-setters-fuzz.zip github.com/ernado/turn
+	go-fuzz-build -func FuzzSetters -o turn-setters-fuzz.zip github.com/gortc/turn
 fuzz-setters:
 	go-fuzz -bin=./turn-setters-fuzz.zip -workdir=examples/turn-setters
 fuzz-test:

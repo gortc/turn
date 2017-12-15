@@ -3,7 +3,7 @@ package turn
 import (
 	"strconv"
 
-	"github.com/ernado/stun"
+	"github.com/gortc/stun"
 )
 
 // ChannelNumber represents CHANNEL-NUMBER attribute.
