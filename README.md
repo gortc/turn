@@ -11,3 +11,19 @@
 Package turn implements RFC 5766 Traversal Using Relays around NAT.
 
 Work in progress.
+
+```
+goos: linux
+goarch: amd64
+pkg: github.com/gortc/turn
+PASS
+benchmark                                iter     time/iter   bytes alloc        allocs
+---------                                ----     ---------   -----------        ------
+BenchmarkChannelNumber/AddTo-12     100000000   12.50 ns/op        0 B/op   0 allocs/op
+BenchmarkChannelNumber/GetFrom-12   200000000    7.30 ns/op        0 B/op   0 allocs/op
+BenchmarkData/AddTo-12              100000000   18.40 ns/op        0 B/op   0 allocs/op
+BenchmarkData/AddToRaw-12           100000000   16.00 ns/op        0 B/op   0 allocs/op
+BenchmarkLifetime/AddTo-12          100000000   14.60 ns/op        0 B/op   0 allocs/op
+BenchmarkLifetime/GetFrom-12        200000000    7.28 ns/op        0 B/op   0 allocs/op
+ok  	github.com/gortc/turn	10.606s
+```
