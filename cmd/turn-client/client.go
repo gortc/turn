@@ -23,8 +23,8 @@ var (
 		"gortc.io:56780",
 		"peer addres",
 	)
-	username = flag.String("username", "gortc", "username")
-	password = flag.String("password", "secret", "password")
+	usernameStr = flag.String("username", "gortc", "username")
+	password    = flag.String("password", "secret", "password")
 )
 
 const (
@@ -69,8 +69,9 @@ func do(logger *zap.Logger, req, res *stun.Message, c *net.UDPConn, attrs ...stu
 func main() {
 	flag.Parse()
 	var (
-		req = new(stun.Message)
-		res = new(stun.Message)
+		req      = new(stun.Message)
+		res      = new(stun.Message)
+		username = stun.NewUsername(*usernameStr)
 	)
 	logCfg := zap.NewDevelopmentConfig()
 	logCfg.DisableCaller = true
@@ -179,21 +180,19 @@ func main() {
 			zap.Error(err),
 		)
 	}
-	realmStr := realm.String()
-	nonceStr := nonce.String()
 	logger.Info("got credentials",
 		zap.Stringer("nonce", nonce),
 		zap.Stringer("realm", realm),
 	)
 	var (
-		credentials = stun.NewLongTermIntegrity(*username, realm.String(), *password)
+		credentials = stun.NewLongTermIntegrity(*usernameStr, realm.String(), *password)
 	)
 	logger.Info("using integrity", zap.Stringer("i", credentials))
 
 	// Constructing allocate request with integrity
 	if err := do(logger, req, res, c, stun.TransactionID,
 		turn.RequestedTransportUDP, realm,
-		stun.NewUsername(*username), nonce, credentials,
+		username, nonce, credentials,
 	); err != nil {
 		logger.Fatal("failed to do request", zap.Error(err))
 	}
@@ -229,9 +228,9 @@ func main() {
 	if err := do(logger, req, res, c, stun.TransactionID,
 		turn.CreatePermissionRequest,
 		peerAddr,
-		stun.Realm(realmStr),
-		stun.Nonce(nonceStr),
-		stun.Username(*username),
+		realm,
+		nonce,
+		username,
 		credentials,
 	); err != nil {
 		logger.Fatal("failed to do request", zap.Error(err))
@@ -276,9 +275,9 @@ func main() {
 	// De-allocating.
 	if err := do(logger, req, res, c, stun.TransactionID,
 		turn.RefreshRequest,
-		stun.Realm(realmStr),
-		stun.Username(*username),
-		stun.Nonce(nonceStr),
+		realm,
+		username,
+		nonce,
 		turn.ZeroLifetime,
 		credentials,
 	); err != nil {
