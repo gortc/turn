@@ -27,7 +27,7 @@ func (a PeerAddress) AddTo(m *stun.Message) error {
 	return (stun.XORMappedAddress)(a).AddToAs(m, stun.AttrXORPeerAddress)
 }
 
-// AddTo decodes XOR-PEER-ADDRESS from message.
+// GetFrom decodes XOR-PEER-ADDRESS from message.
 func (a *PeerAddress) GetFrom(m *stun.Message) error {
 	return (*stun.XORMappedAddress)(a).GetFromAs(m, stun.AttrXORPeerAddress)
 }

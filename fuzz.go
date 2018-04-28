@@ -4,6 +4,7 @@ package turn
 
 import (
 	"fmt"
+
 	"github.com/gortc/stun"
 )
 
@@ -67,7 +68,7 @@ func FuzzSetters(data []byte) int {
 	}
 	m2.WriteHeader()
 	if err := a.g.AddTo(m2); err != nil {
-		fmt.Println("failed to add atribute to m2")
+		fmt.Println("failed to add attribute to m2")
 		panic(err)
 	}
 	m3.WriteHeader()

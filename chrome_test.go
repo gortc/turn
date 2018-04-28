@@ -36,5 +36,7 @@ func TestChromeAllocRequest(t *testing.T) {
 		}
 		messages = append(messages, m)
 	}
-
+	if len(messages) != 4 {
+		t.Error("unexpected message slice list")
+	}
 }

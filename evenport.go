@@ -28,6 +28,7 @@ const (
 	firstBitSet  = (1 << 8) - 1 // 0b100000000
 )
 
+// AddTo adds EVEN-PORT to message.
 func (p EvenPort) AddTo(m *stun.Message) error {
 	v := make([]byte, evenPortSize)
 	if p.ReservePort {
@@ -38,6 +39,7 @@ func (p EvenPort) AddTo(m *stun.Message) error {
 	return nil
 }
 
+// GetFrom decodes EVEN-PORT from message.
 func (p *EvenPort) GetFrom(m *stun.Message) error {
 	v, err := m.Get(stun.AttrEvenPort)
 	if err != nil {
