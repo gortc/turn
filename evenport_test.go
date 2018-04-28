@@ -10,11 +10,11 @@ func TestEvenPort(t *testing.T) {
 	t.Run("String", func(t *testing.T) {
 		p := EvenPort{}
 		if p.String() != "reserve: false" {
-			t.Errorf("bad value %q for reselve: false", p)
+			t.Errorf("bad value %q for reselve: false", p.String())
 		}
 		p.ReservePort = true
 		if p.String() != "reserve: true" {
-			t.Errorf("bad value %q for reselve: true", p)
+			t.Errorf("bad value %q for reselve: true", p.String())
 		}
 	})
 	t.Run("False", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestEvenPort(t *testing.T) {
 				t.Fatal(err)
 			}
 			if port != p {
-				t.Errorf("Decoded %q, expected %q", port, p)
+				t.Errorf("Decoded %q, expected %q", port.String(), p.String())
 			}
 			if wasAllocs(func() {
 				port.GetFrom(decoded)
