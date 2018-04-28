@@ -16,15 +16,15 @@ import (
 
 var (
 	server = flag.String("server",
-		fmt.Sprintf("a1.cydev.ru:%d", turn.DefaultPort),
+		fmt.Sprintf("gortc.io:3479"),
 		"turn server address",
 	)
 	peer = flag.String("peer",
-		"a1.cydev.ru:56780",
+		"gortc.io:56780",
 		"peer addres",
 	)
-	username = flag.String("username", "ernado", "username")
-	password = flag.String("password", "", "password")
+	username = flag.String("username", "gortc", "username")
+	password = flag.String("password", "secret", "password")
 )
 
 const (
@@ -51,6 +51,7 @@ func do(logger *zap.Logger, req, res *stun.Message, c *net.UDPConn, attrs ...stu
 	if cap(res.Raw) < 800 {
 		res.Raw = make([]byte, 0, 1024)
 	}
+	res.Reset()
 	c.SetReadDeadline(time.Now().Add(time.Second * 2))
 	_, err := res.ReadFrom(c)
 	if err != nil {
@@ -62,7 +63,7 @@ func do(logger *zap.Logger, req, res *stun.Message, c *net.UDPConn, attrs ...stu
 		zap.Stringer("m", res),
 		zap.Duration("rtt", time.Since(start)),
 	)
-	return err
+	return nil
 }
 
 func main() {
@@ -269,7 +270,7 @@ func main() {
 	if bytes.Equal(data, sentData) {
 		logger.Info("OK")
 	} else {
-		logger.Info("DATA missmatch")
+		logger.Info("DATA mismatch")
 	}
 
 	// De-allocating.
