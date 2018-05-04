@@ -8,7 +8,6 @@ services:
 go:
   - 1.9.x
   - 1.10.x
-  - master
 
 before_install:
   - go get github.com/mattn/goveralls
@@ -19,9 +18,7 @@ install:
 
 script:
  - $HOME/gopath/bin/goveralls -service=travis-ci -v -package .
- - cd integration-test && ./test.sh
+ - if [[ $TRAVIS_GO_VERSION == 1.10.* ]]; then cd integration-test && ./test.sh; fi
 
 matrix:
-  allow_failures:
-    - go: 'master'
   fast_finish: true
