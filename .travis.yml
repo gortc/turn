@@ -1,6 +1,9 @@
 language: go
 
-sudo: false
+sudo: required
+
+services:
+  - docker
 
 go:
   - 1.9.x
@@ -16,6 +19,7 @@ install:
 
 script:
  - $HOME/gopath/bin/goveralls -service=travis-ci -v -package .
+ - integration-test/test.sh
 
 matrix:
   allow_failures:
