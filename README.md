@@ -3,14 +3,26 @@
 [![GoDoc](https://godoc.org/github.com/gortc/turn?status.svg)](http://godoc.org/github.com/gortc/turn)
 [![Coverage Status](https://coveralls.io/repos/github/gortc/turn/badge.svg?branch=master)](https://coveralls.io/github/gortc/turn?branch=master)
 [![Go Report](https://goreportcard.com/badge/github.com/gortc/turn)](http://goreportcard.com/report/gortc/turn)
-[![RFC 5766](https://img.shields.io/badge/RFC-5766-blue.svg)](https://tools.ietf.org/html/rfc5766)
 
 
-# turn
+# TURN
 
-Package turn implements RFC 5766 Traversal Using Relays around NAT.
+Package turn implements Traversal Using Relays around NAT.
 
 Work in progress.
+
+## RFCs
+
+The package aims to implement the follwing RFCs. Note that the requirement status is based on the [WebRTC spec](https://tools.ietf.org/html/draft-ietf-rtcweb-overview), focusing on data channels for now.
+
+rfc | status | requirement | description
+----|--------|-------------|----
+[![RFC5766](https://img.shields.io/badge/RFC-5766-blue.svg)](https://tools.ietf.org/html/rfc5766) | ![status](https://img.shields.io/badge/status-beta-green.svg) | [![status](https://img.shields.io/badge/requirement-MUST-green.svg)](https://tools.ietf.org/html/rfc2119) | Traversal Using Relays around NAT
+[![RFC6156](https://img.shields.io/badge/RFC-6156-blue.svg)](https://tools.ietf.org/html/rfc6156) | ![status](https://img.shields.io/badge/status-research-orange.svg) | [![status](https://img.shields.io/badge/requirement-MUST-green.svg)](https://tools.ietf.org/html/rfc2119) | TURN Extension for IPv6
+[(TLS-over-)TCP](https://tools.ietf.org/html/rfc5766#section-2.1) | ![status](https://img.shields.io/badge/status-research-orange.svg) | [![status](https://img.shields.io/badge/requirement-MUST-green.svg)](https://tools.ietf.org/html/rfc2119) | Sending over TCP or TLS-over-TCP
+
+## Benchmarks
+
 
 ```
 goos: linux
