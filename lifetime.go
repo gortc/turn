@@ -8,7 +8,7 @@ import (
 
 // DefaultLifetime in RFC 5766 is 10 minutes.
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-2.2
+// RFC5766 Section 2.2
 const DefaultLifetime = time.Minute * 10
 
 // Lifetime represents LIFETIME attribute.
@@ -19,7 +19,7 @@ const DefaultLifetime = time.Minute * 10
 // unsigned integral value representing the number of seconds remaining
 // until expiration.
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-14.2
+// RFC 5766 Section 14.2
 type Lifetime struct {
 	time.Duration
 }

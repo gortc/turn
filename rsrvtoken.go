@@ -11,7 +11,7 @@ import "github.com/gortc/stun"
 // attribute in a subsequent Allocate request to request the server use
 // that relayed transport address for the allocation.
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-14.9
+// RFC 5766 Section 14.9
 type ReservationToken []byte
 
 const reservationTokenSize = 8 // 8 bytes

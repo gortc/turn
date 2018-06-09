@@ -12,7 +12,7 @@ import (
 // seen from the TURN server. (For example, the peer's server-reflexive
 // transport address if the peer is behind a NAT.)
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-14.5
+// RFC 5766 Section 14.5
 type RelayedAddress struct {
 	IP   net.IP
 	Port int

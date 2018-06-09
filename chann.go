@@ -10,7 +10,7 @@ import (
 //
 // The CHANNEL-NUMBER attribute contains the number of the channel.
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-14.1
+// RFC 5766 Section 14.1
 type ChannelNumber int // encoded as uint16
 
 func (n ChannelNumber) String() string { return strconv.Itoa(int(n)) }

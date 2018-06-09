@@ -8,7 +8,7 @@ import "github.com/gortc/stun"
 // relayed transport address be even, and (optionally) that the server
 // reserve the next-higher port number.
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-14.6
+// RFC 5766 Section 14.6
 type EvenPort struct {
 	// ReservePort means that the server is requested to reserve
 	// the next-higher port number (on the same IP address)

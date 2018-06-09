@@ -29,7 +29,7 @@ func (p Protocol) String() string {
 // protocol for the allocated transport address. RFC 5766 only allows the use of
 // codepoint 17 (User Datagram Protocol).
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-14.7
+// RFC 5766 Section 14.7
 type RequestedTransport struct {
 	Protocol Protocol
 }

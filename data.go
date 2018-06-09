@@ -10,7 +10,7 @@ import "github.com/gortc/stun"
 // the UDP header if the data was been sent directly between the client
 // and the peer).
 //
-// https://trac.tools.ietf.org/html/rfc5766#section-14.4
+// RFC 5766 Section 14.4
 type Data []byte
 
 // AddTo adds DATA to message.
