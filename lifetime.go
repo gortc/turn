@@ -8,7 +8,7 @@ import (
 
 // DefaultLifetime in RFC 5766 is 10 minutes.
 //
-// RFC5766 Section 2.2
+// RFC 5766 Section 2.2
 const DefaultLifetime = time.Minute * 10
 
 // Lifetime represents LIFETIME attribute.
