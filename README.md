@@ -7,7 +7,7 @@
 
 # TURN
 
-Package turn implements TURN [[RFC 5766](https://tools.ietf.org/html/rfc2119)] Traversal Using Relays around NAT.
+Package turn implements TURN [[RFC 5766](https://tools.ietf.org/html/rfc5766)] Traversal Using Relays around NAT.
 
 Work in progress.
 
