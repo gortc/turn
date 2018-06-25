@@ -47,6 +47,18 @@ func New() *Message {
 	}
 }
 
+// ErrDecodeToNil occurs on Decode(data, nil) call.
+var ErrDecodeToNil = errors.New("attempt to decode to nil message")
+
+// Decode decodes Message from data to m, returning error if any.
+func Decode(data []byte, m *Message) error {
+	if m == nil {
+		return ErrDecodeToNil
+	}
+	m.Raw = append(m.Raw[:0], data...)
+	return m.Decode()
+}
+
 // Message represents a single STUN packet. It uses aggressive internal
 // buffering to enable zero-allocation encoding and decoding,
 // so there are some usage constraints:
@@ -59,6 +71,15 @@ type Message struct {
 	TransactionID [TransactionIDSize]byte
 	Attributes    Attributes
 	Raw           []byte
+}
+
+// AddTo sets b.TransactionID to m.TransactionID.
+//
+// Implements Setter to aid in crafting responses.
+func (m *Message) AddTo(b *Message) error {
+	b.TransactionID = m.TransactionID
+	b.WriteTransactionID()
+	return nil
 }
 
 // NewTransactionID sets m.TransactionID to random value from crypto/rand
