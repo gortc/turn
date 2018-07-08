@@ -24,8 +24,5 @@ services:
       dockerfile: integration-test/Dockerfile
   turn-server:
     image: bprodoehl/turnserver
-    ports:
-      - "3478:3478"
-      - "3478:3478/udp"
     environment:
       - SKIP_AUTO_IP=1
