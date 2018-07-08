@@ -12,6 +12,8 @@ services:
     build:
       context: ..
       dockerfile: integration-test/Dockerfile
+      args:
+        CI_GO_VERSION: ${CI_GO_VERSION}
   turn-client:
     depends_on:
       - turn-server
@@ -22,6 +24,8 @@ services:
     build:
       context: ..
       dockerfile: integration-test/Dockerfile
+      args:
+        CI_GO_VERSION: ${CI_GO_VERSION}
   turn-server:
     image: bprodoehl/turnserver
     environment:
