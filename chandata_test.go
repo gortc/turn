@@ -182,3 +182,16 @@ func BenchmarkIsChannelData(b *testing.B) {
 		IsChannelData(buf)
 	}
 }
+
+
+func BenchmarkChannelData_Encode(b *testing.B) {
+	d := &ChannelData{
+		Data:   []byte{1, 2, 3, 4},
+		Number: minChannelNumber + 1,
+	}
+	b.ReportAllocs()
+	b.SetBytes(4 + channelDataHeaderSize)
+	for i := 0; i < b.N; i++ {
+		d.Encode()
+	}
+}
