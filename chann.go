@@ -59,7 +59,7 @@ const (
 // ErrInvalidChannelNumber means that channel number is not valid as by RFC 5766 Section 11.
 var ErrInvalidChannelNumber = errors.New("channel number not in [0x4000, 0x7FFF]")
 
-// isChannelNumberValid returns true if c complies to RFC 5766 Section 11.
+// isChannelNumberValid returns true if c in [0x4000, 0x7FFF].
 func isChannelNumberValid(c uint16) bool {
 	return c >= minChannelNumber && c <= maxChannelNumber
 }
