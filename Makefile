@@ -15,6 +15,10 @@ fuzz-setters:
 	go-fuzz -bin=./turn-setters-fuzz.zip -workdir=examples/turn-setters
 fuzz-test:
 	go test -tags gofuzz -run TestFuzz -v .
+fuzz-prepare-chandata:
+	go-fuzz-build -func FuzzChannelData -o turn-chandata-fuzz.zip github.com/gortc/turn
+fuzz-chandata:
+	go-fuzz -bin=./turn-chandata-fuzz.zip -workdir=examples/turn-chandata
 lint:
 	@echo "linting on $(PROCS) cores"
 	@gometalinter \
