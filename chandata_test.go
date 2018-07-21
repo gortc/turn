@@ -195,3 +195,22 @@ func BenchmarkChannelData_Encode(b *testing.B) {
 		d.Encode()
 	}
 }
+
+func BenchmarkChannelData_Decode(b *testing.B) {
+	d := &ChannelData{
+		Data:   []byte{1, 2, 3, 4},
+		Number: minChannelNumber + 1,
+	}
+	d.Encode()
+	buf := make([]byte, len(d.Raw))
+	copy(buf, d.Raw)
+	b.ReportAllocs()
+	b.SetBytes(4 + channelDataHeaderSize)
+	for i := 0; i < b.N; i++ {
+		d.Reset()
+		d.Raw = buf
+		if err := d.Decode(); err != nil {
+			b.Error(err)
+		}
+	}
+}
