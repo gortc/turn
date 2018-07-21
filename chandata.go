@@ -16,23 +16,6 @@ type ChannelData struct {
 	Raw    []byte
 }
 
-// See https://tools.ietf.org/html/rfc5766#section-11:
-//
-// 0x4000 through 0x7FFF: These values are the allowed channel
-// numbers (16,383 possible values).
-const (
-	maxChannelNumber = 0x7FFF
-	minChannelNumber = 0x4000
-)
-
-// ErrInvalidChannelNumber means that channel number is not valid as by RFC 5766 Section 11.
-var ErrInvalidChannelNumber = errors.New("channel number not in [0x4000, 0x7FFF]")
-
-// isChannelNumberValid returns true if c complies to RFC 5766 Section 11.
-func isChannelNumberValid(c ChannelNumber) bool {
-	return c >= minChannelNumber && c <= maxChannelNumber
-}
-
 // Equal returns true if b == c.
 func (c *ChannelData) Equal(b *ChannelData) bool {
 	if c == nil && b == nil {
@@ -111,7 +94,7 @@ func (c *ChannelData) Decode() error {
 	if int(l) != len(buf[channelDataHeaderSize:]) {
 		return ErrBadChannelDataLength
 	}
-	if !isChannelNumberValid(c.Number) {
+	if !c.Number.Valid() {
 		return ErrInvalidChannelNumber
 	}
 	return nil
@@ -129,7 +112,7 @@ func IsChannelData(buf []byte) bool {
 	}
 	// Quick check for channel number.
 	num := bin.Uint16(buf[0:channelNumberSize])
-	if !isChannelNumberValid(ChannelNumber(num)) {
+	if !ChannelNumber(num).Valid() {
 		return false
 	}
 	// Check that length is valid.
