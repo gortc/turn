@@ -64,7 +64,7 @@ func isChannelNumberValid(c ChannelNumber) bool {
 	return c >= minChannelNumber && c <= maxChannelNumber
 }
 
-// Valid returns true if channel number has correct value that complies RFC range.
+// Valid returns true if channel number has correct value that complies RFC 5766 Section 11 range.
 func (n ChannelNumber) Valid() bool {
 	return isChannelNumberValid(n)
 }
