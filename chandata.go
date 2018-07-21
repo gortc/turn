@@ -110,7 +110,7 @@ func IsChannelData(buf []byte) bool {
 	}
 	// Quick check for channel number.
 	num := bin.Uint16(buf[0:channelNumberSize])
-	if !ChannelNumber(num).Valid() {
+	if !isChannelNumberValid(num) {
 		return false
 	}
 	// Check that length is valid.

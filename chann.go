@@ -60,11 +60,11 @@ const (
 var ErrInvalidChannelNumber = errors.New("channel number not in [0x4000, 0x7FFF]")
 
 // isChannelNumberValid returns true if c complies to RFC 5766 Section 11.
-func isChannelNumberValid(c ChannelNumber) bool {
+func isChannelNumberValid(c uint16) bool {
 	return c >= minChannelNumber && c <= maxChannelNumber
 }
 
 // Valid returns true if channel number has correct value that complies RFC 5766 Section 11 range.
 func (n ChannelNumber) Valid() bool {
-	return isChannelNumberValid(n)
+	return isChannelNumberValid(uint16(n))
 }
