@@ -2,34 +2,34 @@
 
 
 [[projects]]
-  digest = "1:36a09cc835bc6ce3742bbd2ec19bf6162577aa8aa09bb3976ae42eb8b52ba93b"
+  digest = "1:0f2c4a18ba5832d7305929a302444563beda00b305b6409db069e87e0d847155"
   name = "github.com/gortc/stun"
   packages = [
     ".",
     "internal/hmac",
   ]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "ca7892b4fd374cfea321866c813f444e0d4cf9bd"
   version = "v1.9.0"
 
 [[projects]]
-  digest = "1:5e30725e7522642910b34208061b21bb0cd77b8ce115c3133a1431c52054e004"
+  digest = "1:3c1a69cdae3501bf75e76d0d86dc6f2b0a7421bc205c0cb7b96b19eed464a34d"
   name = "go.uber.org/atomic"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "1ea20fb1cbb1cc08cbd0d913a96dead89aa18289"
   version = "v1.3.2"
 
 [[projects]]
-  digest = "1:22c7effcb4da0eacb2bb1940ee173fac010e9ef3c691f5de4b524d538bd980f5"
+  digest = "1:60bf2a5e347af463c42ed31a493d817f8a72f102543060ed992754e689805d1a"
   name = "go.uber.org/multierr"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "3c4937480c32f4c13a875a1829af76c98ca3d40a"
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:07b1f6daba5d9e90146208c3143835eef4d34ad5d10ddd631d5b1ffd2f9383cb"
+  digest = "1:460b7b5d45569fa85bc34c0a9aa1498577afee6f24dac2d66a0d53d3737d29ab"
   name = "go.uber.org/zap"
   packages = [
     ".",
@@ -39,7 +39,7 @@
     "internal/exit",
     "zapcore",
   ]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "4d45f9617f7d90f7a663ff21c7a4321dbe78098b"
   version = "v1.9.0"
 
