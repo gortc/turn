@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-// ChannelData represents the ChannelData Message.
+// ChannelData represents The ChannelData Message.
 //
 // See RFC 5766 Section 11.4
 type ChannelData struct {
@@ -35,10 +35,9 @@ func (c *ChannelData) Equal(b *ChannelData) bool {
 
 // grow ensures that internal buffer will fit v more bytes and
 // increases it capacity if necessary.
+//
+// Similar to stun.Message.grow method.
 func (c *ChannelData) grow(v int) {
-	// Not performing any optimizations here
-	// (e.g. preallocate len(buf) * 2 to reduce allocations)
-	// because they are already done by []byte implementation.
 	n := len(c.Raw) + v
 	for cap(c.Raw) < n {
 		c.Raw = append(c.Raw, 0)
@@ -46,7 +45,7 @@ func (c *ChannelData) grow(v int) {
 	c.Raw = c.Raw[:n]
 }
 
-// Reset resets ChannelData, data and underlying buffer length.
+// Reset resets Length, Data and Raw length.
 func (c *ChannelData) Reset() {
 	c.Raw = c.Raw[:0]
 	c.Length = 0
@@ -63,11 +62,11 @@ func (c *ChannelData) Encode() {
 // WriteHeader writes channel number and length.
 func (c *ChannelData) WriteHeader() {
 	if len(c.Raw) < channelDataHeaderSize {
-		// Making WriteHeader call valid even when m.Raw
-		// is nil or len(m.Raw) is less than needed for header.
+		// Making WriteHeader call valid even when c.Raw
+		// is nil or len(c.Raw) is less than needed for header.
 		c.grow(channelDataHeaderSize)
 	}
-	// early bounds check to guarantee safety of writes below
+	// Early bounds check to guarantee safety of writes below.
 	_ = c.Raw[:channelDataHeaderSize]
 	bin.PutUint16(c.Raw[:channelNumberSize], uint16(c.Number))
 	bin.PutUint16(c.Raw[channelNumberSize:channelDataHeaderSize],
@@ -81,7 +80,6 @@ var ErrBadChannelDataLength = errors.New("channelData length != len(Data)")
 
 // Decode decodes The ChannelData Message from Raw.
 func (c *ChannelData) Decode() error {
-	// Decoding message header.
 	buf := c.Raw
 	if len(buf) < channelDataHeaderSize {
 		return io.ErrUnexpectedEOF
