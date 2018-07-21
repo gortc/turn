@@ -97,3 +97,22 @@ func TestChannelNumber(t *testing.T) {
 		})
 	})
 }
+
+func TestChannelNumber_Valid(t *testing.T) {
+	for _, tc := range []struct {
+		n     ChannelNumber
+		value bool
+	}{
+		{minChannelNumber - 1, false},
+		{minChannelNumber, true},
+		{minChannelNumber + 1, true},
+		{maxChannelNumber, true},
+		{maxChannelNumber + 1, false},
+	} {
+		t.Run(tc.n.String(), func(t *testing.T) {
+			if v := tc.n.Valid(); v != tc.value {
+				t.Errorf("unexpected: %v != %v", tc.value, v)
+			}
+		})
+	}
+}

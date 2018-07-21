@@ -45,3 +45,8 @@ func (n *ChannelNumber) GetFrom(m *stun.Message) error {
 	// v[2:4] is RFFU and equals to 0.
 	return nil
 }
+
+// Valid returns true if channel number has correct value that complies RFC range.
+func (n ChannelNumber) Valid() bool {
+	return isChannelNumberValid(n)
+}
