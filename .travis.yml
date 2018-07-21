@@ -19,7 +19,7 @@ install: true
 
 script:
  - $HOME/gopath/bin/goveralls -service=travis-ci -v -package .
- - cd integration-test && ./test.sh
+ - cd integration-test && ./test.sh && cd -
  - make lint
 
 matrix:
