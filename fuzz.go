@@ -89,10 +89,10 @@ var d = &ChannelData{}
 
 func FuzzChannelData(data []byte) int {
 	d.Reset()
-	if bin.Uint16(data[0:4]) > 65535/2 {
+	if b := bin.Uint16(data[0:4]); b > 20000 {
 		bin.PutUint16(data[0:4], minChannelNumber-1)
-	} else {
-		bin.PutUint16(data[0:4], minChannelNumber+1)
+	} else if b > 40000 {
+		bin.PutUint16(data[0:4], minChannelNumber+(maxChannelNumber-minChannelNumber)%b)
 	}
 	d.Raw = append(d.Raw, data...)
 	if d.Decode() != nil {
