@@ -2,12 +2,15 @@
 
 
 [[projects]]
-  digest = "1:db23def5790f2c3b9879af36fb782017d1ba49f4dd5de607c121edf1ee1d49b7"
+  digest = "1:36a09cc835bc6ce3742bbd2ec19bf6162577aa8aa09bb3976ae42eb8b52ba93b"
   name = "github.com/gortc/stun"
-  packages = ["."]
+  packages = [
+    ".",
+    "internal/hmac",
+  ]
   pruneopts = ""
-  revision = "b1195c12de69b19b434ea045d340bea5580913d3"
-  version = "v1.7.1"
+  revision = "ca7892b4fd374cfea321866c813f444e0d4cf9bd"
+  version = "v1.9.0"
 
 [[projects]]
   digest = "1:5e30725e7522642910b34208061b21bb0cd77b8ce115c3133a1431c52054e004"
@@ -26,7 +29,7 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:cab2c00c2278f52d794502459bd9bb8c321335703dcec57971740527b615837b"
+  digest = "1:07b1f6daba5d9e90146208c3143835eef4d34ad5d10ddd631d5b1ffd2f9383cb"
   name = "go.uber.org/zap"
   packages = [
     ".",
@@ -37,8 +40,8 @@
     "zapcore",
   ]
   pruneopts = ""
-  revision = "eeedf312bc6c57391d84767a4cd413f02a917974"
-  version = "v1.8.0"
+  revision = "4d45f9617f7d90f7a663ff21c7a4321dbe78098b"
+  version = "v1.9.0"
 
 [solve-meta]
   analyzer-name = "dep"
