@@ -103,7 +103,6 @@ func (c *ChannelData) Decode() error {
 	if len(buf) < channelDataHeaderSize {
 		return io.ErrUnexpectedEOF
 	}
-	// Quick check for channel number.
 	num := bin.Uint16(buf[0:channelNumberSize])
 	c.Number = ChannelNumber(num)
 	l := bin.Uint16(buf[channelNumberSize:channelDataHeaderSize])
