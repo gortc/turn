@@ -52,8 +52,8 @@ func (n *ChannelNumber) GetFrom(m *stun.Message) error {
 // 0x4000 through 0x7FFF: These values are the allowed channel
 // numbers (16,383 possible values).
 const (
-	maxChannelNumber = 0x7FFF
 	minChannelNumber = 0x4000
+	maxChannelNumber = 0x7FFF
 )
 
 // ErrInvalidChannelNumber means that channel number is not valid as by RFC 5766 Section 11.
