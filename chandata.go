@@ -63,14 +63,14 @@ func (c *ChannelData) grow(v int) {
 	c.Raw = c.Raw[:n]
 }
 
-// Reset resets Message, attributes and underlying buffer length.
+// Reset resets ChannelData, data and underlying buffer length.
 func (c *ChannelData) Reset() {
 	c.Raw = c.Raw[:0]
 	c.Length = 0
 	c.Data = c.Data[:0]
 }
 
-// Encode encodes channel data message to Raw.
+// Encode encodes ChannelData Message to Raw.
 func (c *ChannelData) Encode() {
 	c.Raw = c.Raw[:0]
 	c.WriteHeader()
