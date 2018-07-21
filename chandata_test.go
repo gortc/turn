@@ -183,7 +183,6 @@ func BenchmarkIsChannelData(b *testing.B) {
 	}
 }
 
-
 func BenchmarkChannelData_Encode(b *testing.B) {
 	d := &ChannelData{
 		Data:   []byte{1, 2, 3, 4},
