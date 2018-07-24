@@ -44,3 +44,5 @@ format:
 	goimports -w .
 docker-build:
 	docker build -t gortc/turn .
+test-integration:
+	@cd integration-test && ./test.sh
