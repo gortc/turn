@@ -5,3 +5,5 @@ cmd/turn-client/turn-client
 # go tests
 *.test
 *.out
+
+.idea
