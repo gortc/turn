@@ -26,6 +26,3 @@ script:
  - ./go.test.sh
  - make test-integration
  - make lint
-
-matrix:
-  fast_finish: true
