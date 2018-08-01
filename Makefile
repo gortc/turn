@@ -45,4 +45,4 @@ format:
 docker-build:
 	docker build -t gortc/turn .
 test-integration:
-	@cd integration-test && ./test.sh
+	@cd e2e && ./test.sh
