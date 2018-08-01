@@ -1,13 +1,16 @@
 [![Build Status](https://travis-ci.com/gortc/stun.svg)](https://travis-ci.com/gortc/stun)
 [![Build status](https://ci.appveyor.com/api/projects/status/fw3drn3k52mf5ghw/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/stun-j08g0/branch/master)
 [![GoDoc](https://godoc.org/github.com/gortc/stun?status.svg)](http://godoc.org/github.com/gortc/stun)
-[![Coverage Status](https://coveralls.io/repos/github/gortc/stun/badge.svg?branch=master&v=1)](https://coveralls.io/github/gortc/stun?branch=master)
+[![codecov](https://codecov.io/gh/gortc/stun/branch/master/graph/badge.svg)](https://codecov.io/gh/gortc/stun)
 [![Go Report](https://goreportcard.com/badge/github.com/gortc/stun?camo=retarded)](http://goreportcard.com/report/gortc/stun)
 
 # STUN
 Package stun implements Session Traversal Utilities for NAT (STUN) [[RFC 5389](https://tools.ietf.org/html/rfc5389)]
 with no external dependencies and zero allocations in hot paths.
-See [example](https://godoc.org/github.com/gortc/stun#example-Message) or [stun server](https://github.com/gortc/stund) for usage.
+Complies to [gortc principles](https://gortc.io/#principles) as core package.
+
+See [example](https://godoc.org/github.com/gortc/stun#example-Message) and [stun server](https://github.com/gortc/stund) for simple usage,
+or [gortcd](https://github.com/gortc/gortcd) for advanced one.
 
 # Example
 You can get your current IP address from any STUN server by sending

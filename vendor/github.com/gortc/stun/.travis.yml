@@ -20,13 +20,17 @@ matrix:
   fast_finish: true
 
 before_install:
-  - go get github.com/mattn/goveralls
-  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/alecthomas/gometalinter
+  - gometalinter --install
+  - go get github.com/gortc/api
 
-install:
- - go get -v -t .
+install: true
 
 script:
- - go test -tags gofuzz -run TestFuzz -v .
- - $HOME/gopath/bin/goveralls -service=travis-ci -v -package .
- - cd integration-test && ./test.sh
+ - make check-api
+ - ./go.test.sh
+ - make test-integration
+ - make lint
+
+after_success:
+ - bash <(curl -s https://codecov.io/bash)

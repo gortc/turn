@@ -84,8 +84,8 @@ func TestRequestedTransport(t *testing.T) {
 					t.Errorf("%v should be not found", err)
 				}
 				m.Add(stun.AttrRequestedTransport, []byte{1, 2, 3})
-				if err, ok := handle.GetFrom(m).(*BadAttrLength); !ok {
-					t.Errorf("%v should be *BadAttrLength", err)
+				if !stun.IsAttrSizeInvalid(handle.GetFrom(m)) {
+					t.Error("IsAttrSizeInvalid should be true")
 				}
 			})
 		})

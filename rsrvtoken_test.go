@@ -40,8 +40,8 @@ func TestReservationToken(t *testing.T) {
 		m.WriteHeader()
 		t.Run("HandleErr", func(t *testing.T) {
 			badTk := ReservationToken{34, 45}
-			if err, ok := badTk.AddTo(m).(*BadAttrLength); !ok {
-				t.Errorf("%v should be *BadAttrLength", err)
+			if !stun.IsAttrSizeInvalid(badTk.AddTo(m)) {
+				t.Error("IsAttrSizeInvalid should be true")
 			}
 		})
 		t.Run("GetFrom", func(t *testing.T) {
@@ -68,8 +68,8 @@ func TestReservationToken(t *testing.T) {
 					t.Errorf("%v should be not found", err)
 				}
 				m.Add(stun.AttrReservationToken, []byte{1, 2, 3})
-				if err, ok := handle.GetFrom(m).(*BadAttrLength); !ok {
-					t.Errorf("%v should be *BadAttrLength", err)
+				if !stun.IsAttrSizeInvalid(handle.GetFrom(m)) {
+					t.Error("IsAttrSizeInvalid should be true")
 				}
 			})
 		})

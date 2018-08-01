@@ -90,8 +90,8 @@ func TestChannelNumber(t *testing.T) {
 					t.Errorf("%v should be not found", err)
 				}
 				m.Add(stun.AttrChannelNumber, []byte{1, 2, 3})
-				if err, ok := nHandle.GetFrom(m).(*BadAttrLength); !ok {
-					t.Errorf("%v should be *BadAttrLength", err)
+				if !stun.IsAttrSizeInvalid(nHandle.GetFrom(m)) {
+					t.Error("IsAttrSizeInvalid should be true")
 				}
 			})
 		})
