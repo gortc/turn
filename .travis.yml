@@ -23,6 +23,7 @@ before_install:
 install: true
 
 script:
+ - make check-api
  - ./go.test.sh
  - make test-integration
  - make lint

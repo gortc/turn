@@ -46,3 +46,5 @@ docker-build:
 	docker build -t gortc/turn .
 test-integration:
 	@cd e2e && ./test.sh
+check-api:
+	api -c api/turn1.txt github.com/gortc/turn
