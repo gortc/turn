@@ -8,7 +8,7 @@
 # TURN
 
 Package turn implements TURN [[RFC 5766](https://tools.ietf.org/html/rfc5766)] Traversal Using Relays around NAT.
-Complies to [gortc principles](https://github.com/gortc/dev/blob/master/README.md#principles) as core package.
+Complies to [gortc principles](https://gortc.io/#principles) as core package.
 Based on [gortc/stun](https://github.com/gortc/stun) package.
 Work in progress.
 
