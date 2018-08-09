@@ -7,16 +7,23 @@ pkg github.com/gortc/turn, const DefaultTLSPort ideal-int
 pkg github.com/gortc/turn, const ProtoUDP = 17
 pkg github.com/gortc/turn, const ProtoUDP Protocol
 pkg github.com/gortc/turn, func IsChannelData([]uint8) bool
+pkg github.com/gortc/turn, func NewClient(ClientOptions) (*Client, error)
 pkg github.com/gortc/turn, method (*ChannelData) Decode() error
 pkg github.com/gortc/turn, method (*ChannelData) Encode()
 pkg github.com/gortc/turn, method (*ChannelData) Equal(*ChannelData) bool
 pkg github.com/gortc/turn, method (*ChannelData) Reset()
 pkg github.com/gortc/turn, method (*ChannelData) WriteHeader()
 pkg github.com/gortc/turn, method (*ChannelNumber) GetFrom(*stun.Message) error
+pkg github.com/gortc/turn, method (*Client) HandleEvent(stun.Event)
 pkg github.com/gortc/turn, method (*Data) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*EvenPort) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*Lifetime) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*PeerAddress) GetFrom(*stun.Message) error
+pkg github.com/gortc/turn, method (*Permission) Bind(context.Context, ChannelNumber) error
+pkg github.com/gortc/turn, method (*Permission) Binding() ChannelNumber
+pkg github.com/gortc/turn, method (*Permission) Bound() bool
+pkg github.com/gortc/turn, method (*Permission) Read([]uint8) (int, error)
+pkg github.com/gortc/turn, method (*Permission) Write([]uint8) (int, error)
 pkg github.com/gortc/turn, method (*RelayedAddress) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*RequestedTransport) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*ReservationToken) GetFrom(*stun.Message) error
@@ -38,6 +45,12 @@ pkg github.com/gortc/turn, method (Lifetime) String() string
 pkg github.com/gortc/turn, method (Lifetime) Truncate(time.Duration) time.Duration
 pkg github.com/gortc/turn, method (PeerAddress) AddTo(*stun.Message) error
 pkg github.com/gortc/turn, method (PeerAddress) String() string
+pkg github.com/gortc/turn, method (Permission) Close() error
+pkg github.com/gortc/turn, method (Permission) LocalAddr() net.Addr
+pkg github.com/gortc/turn, method (Permission) RemoteAddr() net.Addr
+pkg github.com/gortc/turn, method (Permission) SetDeadline(time.Time) error
+pkg github.com/gortc/turn, method (Permission) SetReadDeadline(time.Time) error
+pkg github.com/gortc/turn, method (Permission) SetWriteDeadline(time.Time) error
 pkg github.com/gortc/turn, method (Protocol) String() string
 pkg github.com/gortc/turn, method (RelayedAddress) AddTo(*stun.Message) error
 pkg github.com/gortc/turn, method (RelayedAddress) String() string
@@ -50,6 +63,10 @@ pkg github.com/gortc/turn, type ChannelData struct, Length int
 pkg github.com/gortc/turn, type ChannelData struct, Number ChannelNumber
 pkg github.com/gortc/turn, type ChannelData struct, Raw []uint8
 pkg github.com/gortc/turn, type ChannelNumber int
+pkg github.com/gortc/turn, type Client struct
+pkg github.com/gortc/turn, type ClientOptions struct
+pkg github.com/gortc/turn, type ClientOptions struct, Conn net.Conn
+pkg github.com/gortc/turn, type ClientOptions struct, STUN STUNClient
 pkg github.com/gortc/turn, type Data []uint8
 pkg github.com/gortc/turn, type DontFragmentAttr struct
 pkg github.com/gortc/turn, type EvenPort struct
@@ -59,6 +76,7 @@ pkg github.com/gortc/turn, type Lifetime struct, embedded time.Duration
 pkg github.com/gortc/turn, type PeerAddress struct
 pkg github.com/gortc/turn, type PeerAddress struct, IP net.IP
 pkg github.com/gortc/turn, type PeerAddress struct, Port int
+pkg github.com/gortc/turn, type Permission struct
 pkg github.com/gortc/turn, type Protocol uint8
 pkg github.com/gortc/turn, type RelayedAddress struct
 pkg github.com/gortc/turn, type RelayedAddress struct, IP net.IP
@@ -66,11 +84,17 @@ pkg github.com/gortc/turn, type RelayedAddress struct, Port int
 pkg github.com/gortc/turn, type RequestedTransport struct
 pkg github.com/gortc/turn, type RequestedTransport struct, Protocol Protocol
 pkg github.com/gortc/turn, type ReservationToken []uint8
+pkg github.com/gortc/turn, type STUNClient interface { Indicate, Start }
+pkg github.com/gortc/turn, type STUNClient interface, Indicate(*stun.Message) error
+pkg github.com/gortc/turn, type STUNClient interface, Start(*stun.Message, stun.Handler) error
 pkg github.com/gortc/turn, var AllocateRequest stun.MessageType
 pkg github.com/gortc/turn, var CreatePermissionRequest stun.MessageType
 pkg github.com/gortc/turn, var DontFragment DontFragmentAttr
+pkg github.com/gortc/turn, var ErrAlreadyBound error
 pkg github.com/gortc/turn, var ErrBadChannelDataLength error
+pkg github.com/gortc/turn, var ErrBindingInProgress error
 pkg github.com/gortc/turn, var ErrInvalidChannelNumber error
+pkg github.com/gortc/turn, var ErrNotImplemented error
 pkg github.com/gortc/turn, var RefreshRequest stun.MessageType
 pkg github.com/gortc/turn, var RequestedTransportUDP stun.Setter
 pkg github.com/gortc/turn, var SendIndication stun.MessageType

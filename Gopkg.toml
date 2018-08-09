@@ -23,7 +23,8 @@
 
 [[constraint]]
   name = "github.com/gortc/stun"
-  version = "1.6.2"
+  branch = "dev"
+  # version = "1.14"
 
 [[constraint]]
   name = "go.uber.org/zap"
