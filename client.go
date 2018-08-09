@@ -51,11 +51,6 @@ type STUNClient interface {
 	Start(m *stun.Message, h stun.Handler) error
 }
 
-// HandleEvent implements stun.Handler.
-func (c *Client) HandleEvent(e stun.Event) {
-	panic("not implemented")
-}
-
 func (c *Client) sendData(buf []byte, peerAddr *PeerAddress) (int, error) {
 	err := c.stun.Indicate(stun.MustBuild(stun.TransactionID,
 		stun.NewType(stun.MethodSend, stun.ClassIndication),
