@@ -13,20 +13,25 @@ import (
 	"github.com/gortc/stun"
 )
 
+type Allocation struct {
+	c         *Client
+	reladdr   RelayedAddress
+	nonce     stun.Nonce
+	reflexive stun.XORMappedAddress
+	p         []Permission
+}
+
 // Client for TURN server.
 //
 // Provides transparent net.Conn interfaces to remote peers.
 type Client struct {
 	con       net.Conn
 	stun      STUNClient
-	p         []Permission
 	mux       sync.Mutex
 	nonce     stun.Nonce
 	username  stun.Username
 	password  string
 	realm     stun.Realm
-	reladdr   RelayedAddress
-	reflexive stun.XORMappedAddress
 	integrity stun.MessageIntegrity
 }
 
@@ -110,9 +115,10 @@ func (c *Client) bind(p *Permission, n ChannelNumber, f stun.Handler) error {
 var ErrNotImplemented = errors.New("functionality not implemented")
 
 // Connect creates permission on TURN server.
-func (c *Client) Connect() error {
+func (c *Client) Allocate() (*Allocation, error) {
 	var (
 		stunErr error
+		nonce   stun.Nonce
 		m       = stun.New()
 		success = stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse)
 	)
@@ -128,39 +134,46 @@ func (c *Client) Connect() error {
 			stunErr = err
 		}
 	}); err != nil {
-		return err
+		return nil, err
 	}
 	if stunErr != nil {
-		return stunErr
+		return nil, stunErr
 	}
 	if m.Type == success {
 		// Allocated.
-		if err := c.reladdr.GetFrom(m); err != nil {
-			return err
+		var (
+			reladdr   RelayedAddress
+			reflexive stun.XORMappedAddress
+		)
+		if err := reladdr.GetFrom(m); err != nil {
+			return nil, err
 		}
-		if err := c.reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
-			return err
+		if err := reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
+			return nil, err
 		}
-		return nil
+		a := &Allocation{
+			c:         c,
+			reflexive: reflexive,
+			reladdr:   reladdr,
+		}
+		return a, nil
 	}
 
 	// Anonymous allocate failed, trying to authenticate.
 	if m.Type.Method != stun.MethodAllocate {
-		return errors.New("unexpected response type")
+		return nil, errors.New("unexpected response type")
 	}
 	var (
 		code stun.ErrorCode
 	)
 	if code != stun.CodeUnauthorised {
-		return errors.New("unexpected error code")
+		return nil, errors.New("unexpected error code")
 	}
-	if err := c.nonce.GetFrom(m); err != nil {
-		return err
+	if err := nonce.GetFrom(m); err != nil {
+		return nil, err
 	}
-	if len(c.realm) == 0 {
-		if err := c.realm.GetFrom(m); err != nil {
-			return err
-		}
+	if err := c.realm.GetFrom(m); err != nil {
+		return nil, err
 	}
 	c.integrity = stun.NewLongTermIntegrity(
 		c.username.String(), c.realm.String(), c.password,
@@ -170,7 +183,7 @@ func (c *Client) Connect() error {
 	if err := c.stun.Do(stun.MustBuild(stun.TransactionID,
 		AllocateRequest, RequestedTransportUDP,
 		&c.username, &c.realm,
-		&c.nonce,
+		&nonce,
 		&c.integrity, stun.Fingerprint,
 	), func(e stun.Event) {
 		if e.Error != nil {
@@ -181,31 +194,41 @@ func (c *Client) Connect() error {
 			stunErr = err
 		}
 	}); err != nil {
-		return err
+		return nil, err
 	}
 	if stunErr != nil {
-		return stunErr
+		return nil, stunErr
 	}
 	if m.Type == success {
 		// Allocated.
-		if err := c.reladdr.GetFrom(m); err != nil {
-			return err
+		var (
+			reladdr   RelayedAddress
+			reflexive stun.XORMappedAddress
+		)
+		if err := reladdr.GetFrom(m); err != nil {
+			return nil, err
 		}
-		if err := c.reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
-			return err
+		if err := reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
+			return nil, err
 		}
-		return nil
+		a := &Allocation{
+			c:         c,
+			reflexive: reflexive,
+			reladdr:   reladdr,
+			nonce:     nonce,
+		}
+		return a, nil
 	}
 	if m.Type.Method != stun.MethodAllocate {
-		return errors.New("unexpected response type")
+		return nil, errors.New("unexpected response type")
 	}
-	return fmt.Errorf("got messate: %s", m)
+	return nil, fmt.Errorf("got message: %s", m)
 }
 
 // CreateUDP creates new UDP Permission to peer.
-func (c *Client) CreateUDP(peer *PeerAddress) (*Permission, error) {
+func (a *Allocation) CreateUDP(peer *PeerAddress) (*Permission, error) {
 	var pErr error
-	if err := c.stun.Do(stun.MustBuild(
+	if err := a.c.stun.Do(stun.MustBuild(
 		stun.TransactionID, stun.NewType(stun.MethodCreatePermission, stun.ClassRequest), peer,
 	), func(e stun.Event) {
 		e.Error = pErr
@@ -217,7 +240,7 @@ func (c *Client) CreateUDP(peer *PeerAddress) (*Permission, error) {
 	}
 	p := &Permission{
 		peerData: make(chan []byte, 10),
-		c:        c,
+		c:        a.c,
 	}
 	return p, nil
 }
