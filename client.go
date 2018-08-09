@@ -3,6 +3,7 @@ package turn
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -14,15 +15,29 @@ import (
 
 // Client for TURN server.
 //
-// Provides transparent net.Conn interface to remote peer.
+// Provides transparent net.Conn interfaces to remote peers.
 type Client struct {
-	con  net.Conn
-	stun STUNClient
+	con       net.Conn
+	stun      STUNClient
+	p         []Permission
+	mux       sync.Mutex
+	nonce     stun.Nonce
+	username  stun.Username
+	password  string
+	realm     stun.Realm
+	reladdr   RelayedAddress
+	reflexive stun.XORMappedAddress
+	integrity stun.MessageIntegrity
 }
 
 type ClientOptions struct {
 	Conn net.Conn
 	STUN STUNClient // optional STUN client
+
+	// Long-term integrity.
+	Username string
+	Password string
+	Realm    string
 }
 
 func NewClient(o ClientOptions) (*Client, error) {
@@ -39,8 +54,15 @@ func NewClient(o ClientOptions) (*Client, error) {
 		}
 	}
 	c := &Client{
-		stun: o.STUN,
-		con:  o.Conn,
+		stun:     o.STUN,
+		con:      o.Conn,
+		password: o.Password,
+	}
+	if o.Username != "" {
+		c.username = stun.NewUsername(o.Username)
+	}
+	if o.Realm != "" {
+		c.realm = stun.NewRealm(o.Realm)
 	}
 	return c, nil
 }
@@ -48,7 +70,7 @@ func NewClient(o ClientOptions) (*Client, error) {
 // STUNClient abstracts STUN protocol interaction.
 type STUNClient interface {
 	Indicate(m *stun.Message) error
-	Start(m *stun.Message, h stun.Handler) error
+	Do(m *stun.Message, f func(e stun.Event)) error
 }
 
 func (c *Client) sendData(buf []byte, peerAddr *PeerAddress) (int, error) {
@@ -74,23 +96,142 @@ func (c *Client) sendChan(buf []byte, n ChannelNumber) (int, error) {
 	return c.con.Write(d.Raw)
 }
 
-func (c *Client) handleBinding(p *Permission, n ChannelNumber, f stun.Handler) error {
-	return c.stun.Start(stun.MustBuild(stun.TransactionID,
+func (c *Client) bind(p *Permission, n ChannelNumber, f stun.Handler) error {
+	s := make([]stun.Setter, 0, 10)
+	s = append(s,
+		stun.TransactionID,
+	)
+
+	return c.stun.Do(stun.MustBuild(stun.TransactionID,
 		stun.NewType(stun.MethodSend, stun.ClassIndication),
 	), f)
 }
 
 var ErrNotImplemented = errors.New("functionality not implemented")
 
+// Connect creates permission on TURN server.
+func (c *Client) Connect() error {
+	var (
+		stunErr error
+		m       = stun.New()
+		success = stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse)
+	)
+	if err := c.stun.Do(stun.MustBuild(stun.TransactionID,
+		AllocateRequest, RequestedTransportUDP,
+		stun.Fingerprint,
+	), func(e stun.Event) {
+		if e.Error != nil {
+			stunErr = e.Error
+			return
+		}
+		if err := e.Message.CloneTo(m); err != nil {
+			stunErr = err
+		}
+	}); err != nil {
+		return err
+	}
+	if stunErr != nil {
+		return stunErr
+	}
+	if m.Type == success {
+		// Allocated.
+		if err := c.reladdr.GetFrom(m); err != nil {
+			return err
+		}
+		if err := c.reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
+			return err
+		}
+		return nil
+	}
+
+	// Anonymous allocate failed, trying to authenticate.
+	if m.Type.Method != stun.MethodAllocate {
+		return errors.New("unexpected response type")
+	}
+	var (
+		code stun.ErrorCode
+	)
+	if code != stun.CodeUnauthorised {
+		return errors.New("unexpected error code")
+	}
+	if err := c.nonce.GetFrom(m); err != nil {
+		return err
+	}
+	if len(c.realm) == 0 {
+		if err := c.realm.GetFrom(m); err != nil {
+			return err
+		}
+	}
+	c.integrity = stun.NewLongTermIntegrity(
+		c.username.String(), c.realm.String(), c.password,
+	)
+
+	// Trying to authorise.
+	if err := c.stun.Do(stun.MustBuild(stun.TransactionID,
+		AllocateRequest, RequestedTransportUDP,
+		&c.username, &c.realm,
+		&c.nonce,
+		&c.integrity, stun.Fingerprint,
+	), func(e stun.Event) {
+		if e.Error != nil {
+			stunErr = e.Error
+			return
+		}
+		if err := e.Message.CloneTo(m); err != nil {
+			stunErr = err
+		}
+	}); err != nil {
+		return err
+	}
+	if stunErr != nil {
+		return stunErr
+	}
+	if m.Type == success {
+		// Allocated.
+		if err := c.reladdr.GetFrom(m); err != nil {
+			return err
+		}
+		if err := c.reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
+			return err
+		}
+		return nil
+	}
+	if m.Type.Method != stun.MethodAllocate {
+		return errors.New("unexpected response type")
+	}
+	return fmt.Errorf("got messate: %s", m)
+}
+
+// CreateUDP creates new UDP Permission to peer.
+func (c *Client) CreateUDP(peer *PeerAddress) (*Permission, error) {
+	var pErr error
+	if err := c.stun.Do(stun.MustBuild(
+		stun.TransactionID, stun.NewType(stun.MethodCreatePermission, stun.ClassRequest), peer,
+	), func(e stun.Event) {
+		e.Error = pErr
+	}); err != nil {
+		return nil, err
+	}
+	if pErr != nil {
+		return nil, pErr
+	}
+	p := &Permission{
+		peerData: make(chan []byte, 10),
+		c:        c,
+	}
+	return p, nil
+}
+
 // Permission. Implements net.PacketConn.
 type Permission struct {
-	mux          *sync.RWMutex
+	mux          sync.RWMutex
 	binding      bool
 	bindErr      error
 	number       uint32
 	c            *Client
 	readDeadline time.Time
 	peerData     chan []byte
+	p            Protocol
 }
 
 // Read data from peer.
@@ -147,28 +288,17 @@ func (p *Permission) Bind(ctx context.Context, n ChannelNumber) error {
 	}
 
 	// Starting transaction.
-	done := make(chan struct{})
-	if err := p.c.handleBinding(p, n, func(e stun.Event) {
+	if err := p.c.bind(p, n, func(e stun.Event) {
 		p.bindErr = e.Error
 		p.binding = false
 		if e.Error == nil {
+			// Binding succeed.
 			atomic.StoreUint32(&p.number, uint32(n))
 		}
-		done <- struct{}{}
 	}); err != nil {
 		return err
 	}
-
-	// Waiting until transaction is done.
-	select {
-	case <-done:
-		return p.bindErr
-	case <-ctx.Done():
-		go func() {
-			<-done
-		}()
-		return ctx.Err()
-	}
+	return p.bindErr
 }
 
 // Write sends buffer to peer.
