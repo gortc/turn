@@ -158,7 +158,18 @@ func TestClient_Allocate(t *testing.T) {
 				if readErr != nil {
 					t.Error("failed to read")
 				}
-				buf = buf[:readN]
+				d := ChannelData{
+					Raw: buf[:readN],
+				}
+				if decodeErr := d.Decode(); decodeErr != nil {
+					t.Errorf("failed to decode channel data: %v", decodeErr)
+				}
+				if !bytes.Equal(d.Data, sent) {
+					t.Error("decoded channel data payload is invalid")
+				}
+				if d.Number != n {
+					t.Error("decoded channel number is invalid")
+				}
 				gotWrite <- struct{}{}
 			}()
 			if _, writeErr := p.Write(sent); writeErr != nil {
