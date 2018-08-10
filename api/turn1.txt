@@ -24,7 +24,13 @@ pkg github.com/gortc/turn, method (*PeerAddress) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*Permission) Bind() error
 pkg github.com/gortc/turn, method (*Permission) Binding() ChannelNumber
 pkg github.com/gortc/turn, method (*Permission) Bound() bool
+pkg github.com/gortc/turn, method (*Permission) Close() error
+pkg github.com/gortc/turn, method (*Permission) LocalAddr() net.Addr
 pkg github.com/gortc/turn, method (*Permission) Read([]uint8) (int, error)
+pkg github.com/gortc/turn, method (*Permission) RemoteAddr() net.Addr
+pkg github.com/gortc/turn, method (*Permission) SetDeadline(time.Time) error
+pkg github.com/gortc/turn, method (*Permission) SetReadDeadline(time.Time) error
+pkg github.com/gortc/turn, method (*Permission) SetWriteDeadline(time.Time) error
 pkg github.com/gortc/turn, method (*Permission) Write([]uint8) (int, error)
 pkg github.com/gortc/turn, method (*RelayedAddress) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*RequestedTransport) GetFrom(*stun.Message) error
@@ -51,12 +57,6 @@ pkg github.com/gortc/turn, method (Lifetime) String() string
 pkg github.com/gortc/turn, method (Lifetime) Truncate(time.Duration) time.Duration
 pkg github.com/gortc/turn, method (PeerAddress) AddTo(*stun.Message) error
 pkg github.com/gortc/turn, method (PeerAddress) String() string
-pkg github.com/gortc/turn, method (Permission) Close() error
-pkg github.com/gortc/turn, method (Permission) LocalAddr() net.Addr
-pkg github.com/gortc/turn, method (Permission) RemoteAddr() net.Addr
-pkg github.com/gortc/turn, method (Permission) SetDeadline(time.Time) error
-pkg github.com/gortc/turn, method (Permission) SetReadDeadline(time.Time) error
-pkg github.com/gortc/turn, method (Permission) SetWriteDeadline(time.Time) error
 pkg github.com/gortc/turn, method (Protocol) String() string
 pkg github.com/gortc/turn, method (RelayedAddress) AddTo(*stun.Message) error
 pkg github.com/gortc/turn, method (RelayedAddress) String() string
