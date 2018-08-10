@@ -26,6 +26,7 @@ lint:
 		-e "_test.go.+(gocyclo|errcheck|dupl)" \
 		-e "attributes\.go.+credentials,.+,LOW.+\(gas\)" \
 		-e "parameter v always receives 8" \
+		-e "function \(\*Client\).allocate\(\) is high .+\(gocyclo\)" \
 		--enable="lll" --line-length=100 \
 		--enable="gofmt" \
 		--enable="goimports" \
@@ -33,6 +34,7 @@ lint:
 		--enable="unused" \
 		--deadline=300s \
 		--disable="gochecknoglobals" \
+		--disable="interfacer" \
 		-j $(PROCS)
 	@echo "ok"
 escape:

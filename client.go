@@ -14,11 +14,11 @@ import (
 	"github.com/gortc/stun"
 )
 
+// Allocation reflects TURN Allocation.
 type Allocation struct {
 	c         *Client
 	reladdr   RelayedAddress
 	reflexive stun.XORMappedAddress
-	nonce     stun.Nonce
 	p         []*Permission
 	minBound  ChannelNumber
 }
@@ -30,7 +30,6 @@ type Client struct {
 	con       net.Conn
 	stun      STUNClient
 	mux       sync.Mutex
-	nonce     stun.Nonce
 	username  stun.Username
 	password  string
 	realm     stun.Realm
@@ -38,6 +37,7 @@ type Client struct {
 	a         *Allocation // the only allocation
 }
 
+// ClientOptions contains available config for TURN  client.
 type ClientOptions struct {
 	Conn net.Conn
 	STUN STUNClient // optional STUN client
@@ -123,7 +123,10 @@ func newMultiplexer(conn net.Conn) *multiplexer {
 }
 
 func (m *multiplexer) discardData() {
-	io.Copy(ioutil.Discard, m.dataL)
+	_, err := io.Copy(ioutil.Discard, m.dataL)
+	if err != nil {
+		log.Println("discardData:", err)
+	}
 }
 
 func (m *multiplexer) readUntilClosed() {
@@ -134,9 +137,15 @@ func (m *multiplexer) readUntilClosed() {
 		if err != nil {
 			// End of cycle.
 			// TODO: Handle timeouts and temporary errors.
-			m.turnR.Close()
-			m.stunR.Close()
-			m.dataR.Close()
+			if closeErr := m.turnR.Close(); closeErr != nil {
+				log.Println("failed to close turnR:", closeErr)
+			}
+			if closeErr := m.stunR.Close(); closeErr != nil {
+				log.Println("failed to close turnR:", closeErr)
+			}
+			if closeErr := m.dataR.Close(); closeErr != nil {
+				log.Println("failed to close turnR:", closeErr)
+			}
 			break
 		}
 		data := buf[:n]
@@ -152,10 +161,14 @@ func (m *multiplexer) readUntilClosed() {
 		default:
 			log.Println("multiplexer: got APP data")
 		}
-		conn.Write(data)
+		_, err = conn.Write(data)
+		if err != nil {
+			log.Println("write err:", err)
+		}
 	}
 }
 
+// NewClient creates and initializes new TURN client.
 func NewClient(o ClientOptions) (*Client, error) {
 	if o.Conn == nil {
 		return nil, errors.New("connection not provided")
@@ -296,47 +309,37 @@ func (c *Client) bind(p *Permission, n ChannelNumber, f stun.Handler) error {
 	), f)
 }
 
+// ErrNotImplemented means that functionality is not currently implemented,
+// but it will be (eventually).
 var ErrNotImplemented = errors.New("functionality not implemented")
 
-// Connect creates permission on TURN server.
-func (c *Client) Allocate() (*Allocation, error) {
-	var (
-		stunErr error
-		nonce   stun.Nonce
-		m       = stun.New()
-		success = stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse)
-	)
-	req, err := stun.Build(stun.TransactionID,
-		AllocateRequest, RequestedTransportUDP,
-		stun.Fingerprint,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if err := c.stun.Do(req, func(e stun.Event) {
+var errUnauthorised = errors.New("unauthorised")
+
+func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
+	var stunErr error
+	if doErr := c.stun.Do(req, func(e stun.Event) {
 		if e.Error != nil {
 			stunErr = e.Error
 			return
 		}
-		if err := e.Message.CloneTo(m); err != nil {
+		if err := e.Message.CloneTo(res); err != nil {
 			stunErr = err
 		}
-	}); err != nil {
-		return nil, err
+	}); doErr != nil {
+		return nil, doErr
 	}
 	if stunErr != nil {
 		return nil, stunErr
 	}
-	if m.Type == success {
-		// Allocated.
+	if res.Type == stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse) {
 		var (
 			reladdr   RelayedAddress
 			reflexive stun.XORMappedAddress
 		)
-		if err := reladdr.GetFrom(m); err != nil {
+		if err := reladdr.GetFrom(res); err != nil {
 			return nil, err
 		}
-		if err := reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
+		if err := reflexive.GetFrom(res); err != nil && err != stun.ErrAttributeNotFound {
 			return nil, err
 		}
 		a := &Allocation{
@@ -348,9 +351,8 @@ func (c *Client) Allocate() (*Allocation, error) {
 		c.a = a
 		return a, nil
 	}
-
 	// Anonymous allocate failed, trying to authenticate.
-	if m.Type.Method != stun.MethodAllocate {
+	if res.Type.Method != stun.MethodAllocate {
 		return nil, errors.New("unexpected response type")
 	}
 	var (
@@ -359,65 +361,52 @@ func (c *Client) Allocate() (*Allocation, error) {
 	if code != stun.CodeUnauthorised {
 		return nil, errors.New("unexpected error code")
 	}
-	if err := nonce.GetFrom(m); err != nil {
+	return nil, errUnauthorised
+}
+
+// Allocate creates an allocation for current 5-tuple. Currently there can be
+// only one allocation per client, because client wraps one net.Conn.
+//
+// TODO: simplify
+func (c *Client) Allocate() (*Allocation, error) {
+	var (
+		nonce stun.Nonce
+		res   = stun.New()
+	)
+	req, reqErr := stun.Build(stun.TransactionID,
+		AllocateRequest, RequestedTransportUDP,
+		stun.Fingerprint,
+	)
+	if reqErr != nil {
+		return nil, reqErr
+	}
+	a, allocErr := c.allocate(req, res)
+	if allocErr == nil {
+		return a, nil
+	}
+	if allocErr != errUnauthorised {
+		return nil, allocErr
+	}
+	// Anonymous allocate failed, trying to authenticate.
+	if err := nonce.GetFrom(res); err != nil {
 		return nil, err
 	}
-	if err := c.realm.GetFrom(m); err != nil {
+	if err := c.realm.GetFrom(res); err != nil {
 		return nil, err
 	}
 	c.integrity = stun.NewLongTermIntegrity(
 		c.username.String(), c.realm.String(), c.password,
 	)
-
 	// Trying to authorise.
-	if err = req.Build(stun.TransactionID,
+	if reqErr = req.Build(stun.TransactionID,
 		AllocateRequest, RequestedTransportUDP,
 		&c.username, &c.realm,
 		&nonce,
 		&c.integrity, stun.Fingerprint,
-	); err != nil {
-		return nil, err
+	); reqErr != nil {
+		return nil, reqErr
 	}
-	if err := c.stun.Do(req, func(e stun.Event) {
-		if e.Error != nil {
-			stunErr = e.Error
-			return
-		}
-		if err := e.Message.CloneTo(m); err != nil {
-			stunErr = err
-		}
-	}); err != nil {
-		return nil, err
-	}
-	if stunErr != nil {
-		return nil, stunErr
-	}
-	if m.Type == success {
-		// Allocated.
-		var (
-			reladdr   RelayedAddress
-			reflexive stun.XORMappedAddress
-		)
-		if err := reladdr.GetFrom(m); err != nil {
-			return nil, err
-		}
-		if err := reflexive.GetFrom(m); err != nil && err != stun.ErrAttributeNotFound {
-			return nil, err
-		}
-		a := &Allocation{
-			c:         c,
-			reflexive: reflexive,
-			reladdr:   reladdr,
-			nonce:     nonce,
-			minBound:  minChannelNumber,
-		}
-		c.a = a
-		return a, nil
-	}
-	if m.Type.Method != stun.MethodAllocate {
-		return nil, errors.New("unexpected response type")
-	}
-	return nil, fmt.Errorf("got message: %s", m)
+	return c.allocate(req, res)
 }
 
 // CreateUDP creates new UDP Permission to peer.
@@ -442,17 +431,15 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 	return p, nil
 }
 
-// Permission. Implements net.PacketConn.
+// Permission implements net.PacketConn.
 type Permission struct {
-	mux          sync.RWMutex
-	binding      bool
-	bindErr      error
-	number       uint32
-	c            *Client
-	readDeadline time.Time
-	peerData     chan []byte
-	peerAddr     PeerAddress
-	p            Protocol
+	mux      sync.RWMutex
+	binding  bool
+	number   uint32
+	bindErr  error
+	peerAddr PeerAddress
+	peerData chan []byte
+	c        *Client
 }
 
 // Read data from peer.
@@ -531,28 +518,32 @@ func (p *Permission) Write(b []byte) (n int, err error) {
 	return p.c.sendData(b, &p.peerAddr)
 }
 
-func (Permission) Close() error {
+// Close implements net.Conn.
+func (p *Permission) Close() error {
 	return ErrNotImplemented
 }
 
 // LocalAddr is relayed address from TURN server.
-func (Permission) LocalAddr() net.Addr {
+func (p *Permission) LocalAddr() net.Addr {
 	panic("implement me")
 }
 
 // RemoteAddr is peer address.
-func (Permission) RemoteAddr() net.Addr {
+func (p *Permission) RemoteAddr() net.Addr {
 	panic("implement me")
 }
 
-func (Permission) SetDeadline(t time.Time) error {
+// SetDeadline implements net.Conn.
+func (p *Permission) SetDeadline(t time.Time) error {
 	return ErrNotImplemented
 }
 
-func (Permission) SetReadDeadline(t time.Time) error {
+// SetReadDeadline implements net.Conn.
+func (p *Permission) SetReadDeadline(t time.Time) error {
 	return ErrNotImplemented
 }
 
-func (Permission) SetWriteDeadline(t time.Time) error {
+// SetWriteDeadline implements net.Conn.
+func (p *Permission) SetWriteDeadline(t time.Time) error {
 	return ErrNotImplemented
 }
