@@ -16,8 +16,8 @@ import (
 type Allocation struct {
 	c         *Client
 	reladdr   RelayedAddress
-	nonce     stun.Nonce
 	reflexive stun.XORMappedAddress
+	nonce     stun.Nonce
 	p         []Permission
 }
 
@@ -33,6 +33,7 @@ type Client struct {
 	password  string
 	realm     stun.Realm
 	integrity stun.MessageIntegrity
+	a         *Allocation // the only allocation
 }
 
 type ClientOptions struct {
@@ -122,10 +123,14 @@ func (c *Client) Allocate() (*Allocation, error) {
 		m       = stun.New()
 		success = stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse)
 	)
-	if err := c.stun.Do(stun.MustBuild(stun.TransactionID,
+	req, err := stun.Build(stun.TransactionID,
 		AllocateRequest, RequestedTransportUDP,
 		stun.Fingerprint,
-	), func(e stun.Event) {
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.stun.Do(req, func(e stun.Event) {
 		if e.Error != nil {
 			stunErr = e.Error
 			return
@@ -156,6 +161,7 @@ func (c *Client) Allocate() (*Allocation, error) {
 			reflexive: reflexive,
 			reladdr:   reladdr,
 		}
+		c.a = a
 		return a, nil
 	}
 
@@ -180,12 +186,15 @@ func (c *Client) Allocate() (*Allocation, error) {
 	)
 
 	// Trying to authorise.
-	if err := c.stun.Do(stun.MustBuild(stun.TransactionID,
+	if err = req.Build(stun.TransactionID,
 		AllocateRequest, RequestedTransportUDP,
 		&c.username, &c.realm,
 		&nonce,
 		&c.integrity, stun.Fingerprint,
-	), func(e stun.Event) {
+	); err != nil {
+		return nil, err
+	}
+	if err := c.stun.Do(req, func(e stun.Event) {
 		if e.Error != nil {
 			stunErr = e.Error
 			return
@@ -217,6 +226,7 @@ func (c *Client) Allocate() (*Allocation, error) {
 			reladdr:   reladdr,
 			nonce:     nonce,
 		}
+		c.a = a
 		return a, nil
 	}
 	if m.Type.Method != stun.MethodAllocate {
@@ -226,7 +236,7 @@ func (c *Client) Allocate() (*Allocation, error) {
 }
 
 // CreateUDP creates new UDP Permission to peer.
-func (a *Allocation) CreateUDP(peer *PeerAddress) (*Permission, error) {
+func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 	var pErr error
 	if err := a.c.stun.Do(stun.MustBuild(
 		stun.TransactionID, stun.NewType(stun.MethodCreatePermission, stun.ClassRequest), peer,
@@ -239,6 +249,7 @@ func (a *Allocation) CreateUDP(peer *PeerAddress) (*Permission, error) {
 		return nil, pErr
 	}
 	p := &Permission{
+		peerAddr: peer,
 		peerData: make(chan []byte, 10),
 		c:        a.c,
 	}
@@ -254,16 +265,14 @@ type Permission struct {
 	c            *Client
 	readDeadline time.Time
 	peerData     chan []byte
+	peerAddr     PeerAddress
 	p            Protocol
 }
 
 // Read data from peer.
 func (p *Permission) Read(b []byte) (n int, err error) {
-	p.mux.Lock()
-	deadline := p.readDeadline
-	p.mux.Unlock()
 	select {
-	case <-time.After(time.Until(deadline)):
+	case <-time.After(time.Second):
 		return 0, errors.New("deadline reached")
 	case d := <-p.peerData:
 		if len(b) < len(d) {
@@ -331,7 +340,7 @@ func (p *Permission) Write(b []byte) (n int, err error) {
 	if n := atomic.LoadUint32(&p.number); n != 0 {
 		return p.c.sendChan(b, ChannelNumber(n))
 	}
-	return p.c.sendData(b, &PeerAddress{})
+	return p.c.sendData(b, &p.peerAddr)
 }
 
 func (Permission) Close() error {

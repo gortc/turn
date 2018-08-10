@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"net"
 	"time"
 
+	"bytes"
 	"github.com/gortc/stun"
 	"github.com/gortc/turn"
 	"go.uber.org/zap"
@@ -59,9 +59,6 @@ func main() {
 	var (
 		serverAddr *net.UDPAddr
 		echoAddr   *net.UDPAddr
-		code       stun.ErrorCodeAttribute
-		req        = new(stun.Message)
-		res        = new(stun.Message)
 	)
 	logCfg := zap.NewDevelopmentConfig()
 	logCfg.DisableCaller = true
@@ -107,6 +104,7 @@ func main() {
 		}
 	}
 
+	// Resolving server and peer addresses.
 	for i := 0; i < 10; i++ {
 		serverAddr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("turn-server:%d", turn.DefaultPort))
 		if err == nil {
@@ -128,99 +126,47 @@ func main() {
 		panic(err)
 	}
 
+	// Creating connection from client to server.
 	c, err := net.DialUDP(udp, nil, serverAddr)
 	if err != nil {
 		logger.Fatal("failed to dial to TURN server",
 			zap.Error(err),
 		)
 	}
-	logger.Info("dial server",
+	logger.Info("dialed server",
 		zap.Stringer("laddr", c.LocalAddr()),
 		zap.Stringer("raddr", c.RemoteAddr()),
+		zap.Stringer("peer", echoAddr),
 	)
-
-	// Constructing allocate request with integrity
-	if err := do(logger, req, res, c,
-		stun.TransactionID,
-		turn.AllocateRequest,
-		turn.RequestedTransportUDP,
-	); err != nil {
-		logger.Fatal("failed to do request", zap.Error(err))
+	client, err := turn.NewClient(turn.ClientOptions{
+		Conn: c,
+	})
+	if err != nil {
+		logger.Fatal("failed to create client", zap.Error(err))
 	}
-	if isErr(res) {
-		code.GetFrom(res)
-		logger.Fatal("got error response", zap.Stringer("err", code))
+	a, err := client.Allocate()
+	if err != nil {
+		logger.Fatal("failed to create allocation", zap.Error(err))
 	}
-	// Decoding relayed and mapped address.
-	var (
-		reladdr turn.RelayedAddress
-		maddr   stun.XORMappedAddress
-	)
-	if err := reladdr.GetFrom(res); err != nil {
-		logger.Fatal("failed to get relayed address", zap.Error(err))
-	}
-	logger.Info("relayed address", zap.Stringer("addr", reladdr))
-	if err := maddr.GetFrom(res); err != nil && err != stun.ErrAttributeNotFound {
-		logger.Fatal("failed to decode relayed address", zap.Error(err))
-	} else {
-		logger.Info("mapped address", zap.Stringer("addr", maddr))
-	}
-
-	peerAddr := turn.PeerAddress{
+	p, err := a.CreateUDP(turn.PeerAddress{
 		IP:   echoAddr.IP,
 		Port: echoAddr.Port,
-	}
-	logger.Info("peer address", zap.Stringer("addr", peerAddr))
-	if err := do(logger, req, res, c, stun.TransactionID,
-		turn.CreatePermissionRequest,
-		peerAddr,
-	); err != nil {
-		logger.Fatal("failed to do request", zap.Error(err))
-	}
-	if isErr(res) {
-		code.GetFrom(res)
-		logger.Fatal("failed to allocate", zap.Stringer("err", code))
-	}
-	var (
-		sentData = turn.Data("Hello world!")
-	)
-	// Allocation succeed.
-	// Sending data to echo server.
-	// can be as resetTo(type, attrs)?
-	if err := do(logger, req, res, c, stun.TransactionID,
-		turn.SendIndication,
-		sentData,
-		peerAddr,
-		stun.Fingerprint,
-	); err != nil {
-		logger.Fatal("failed to build", zap.Error(err))
-	}
-	logger.Info("sent data", zap.String("v", string(sentData)))
-	if isErr(res) {
-		code.GetFrom(res)
-		logger.Fatal("got error response", zap.Stringer("err", code))
-	}
-	var data turn.Data
-	if err := data.GetFrom(res); err != nil {
-		logger.Fatal("failed to get DATA attribute", zap.Error(err))
-	}
-	logger.Info("got data", zap.String("v", string(data)))
-	if bytes.Equal(data, sentData) {
-		logger.Info("OK")
-	} else {
-		logger.Info("DATA mismatch")
+	})
+	if err != nil {
+		logger.Fatal("failed to create permission")
 	}
 
-	// De-allocating.
-	if err := do(logger, req, res, c, stun.TransactionID,
-		turn.RefreshRequest,
-		turn.ZeroLifetime,
-	); err != nil {
-		logger.Fatal("failed to do", zap.Error(err))
+	// Sending and receiving "hello" message.
+	sent := []byte("hello")
+	if _, err = p.Write([]byte("hello")); err != nil {
+		logger.Fatal("failed to write data")
 	}
-	if isErr(res) {
-		code.GetFrom(res)
-		logger.Fatal("got error response", zap.Stringer("err", code))
+	got := make([]byte, len(sent))
+	if _, err = p.Read(got); err != nil {
+		logger.Fatal("failed to read data")
+	}
+	if !bytes.Equal(got, sent) {
+		logger.Fatal("got incorrect data")
 	}
 	logger.Info("closing")
 }
