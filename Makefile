@@ -50,3 +50,6 @@ test-integration:
 	@cd e2e && ./test.sh
 check-api:
 	api -c api/turn1.txt github.com/gortc/turn
+write-api:
+	api github.com/gortc/turn > api/turn1.txt
+

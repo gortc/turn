@@ -36,6 +36,7 @@ pkg github.com/gortc/turn, method (*RelayedAddress) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*RequestedTransport) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*ReservationToken) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (Addr) Equal(Addr) bool
+pkg github.com/gortc/turn, method (Addr) Network() string
 pkg github.com/gortc/turn, method (Addr) String() string
 pkg github.com/gortc/turn, method (ChannelNumber) AddTo(*stun.Message) error
 pkg github.com/gortc/turn, method (ChannelNumber) String() string
@@ -76,6 +77,7 @@ pkg github.com/gortc/turn, type ChannelNumber int
 pkg github.com/gortc/turn, type Client struct
 pkg github.com/gortc/turn, type ClientOptions struct
 pkg github.com/gortc/turn, type ClientOptions struct, Conn net.Conn
+pkg github.com/gortc/turn, type ClientOptions struct, Log *zap.Logger
 pkg github.com/gortc/turn, type ClientOptions struct, Password string
 pkg github.com/gortc/turn, type ClientOptions struct, Realm string
 pkg github.com/gortc/turn, type ClientOptions struct, STUN STUNClient
