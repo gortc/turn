@@ -11,6 +11,10 @@ type Addr struct {
 	Port int
 }
 
+func (Addr) Network() string {
+	return "turn"
+}
+
 // FromUDPAddr sets addr to UDPAddr.
 func (a *Addr) FromUDPAddr(n *net.UDPAddr) {
 	a.IP = n.IP

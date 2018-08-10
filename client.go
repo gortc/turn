@@ -256,7 +256,9 @@ func (c *Client) stunHandler(e stun.Event) {
 		if !Addr(c.a.p[i].peerAddr).Equal(Addr(addr)) {
 			continue
 		}
-		c.a.p[i].peerData <- data
+		if _, err := c.a.p[i].peerL.Write(data); err != nil {
+			c.log.Error("failed to write", zap.Error(err))
+		}
 	}
 	c.mux.Unlock()
 }
@@ -268,7 +270,9 @@ func (c *Client) handleChannelData(data *ChannelData) {
 		if data.Number != ChannelNumber(atomic.LoadUint32(&c.a.p[i].number)) {
 			continue
 		}
-		c.a.p[i].peerData <- data.Data
+		if _, err := c.a.p[i].peerL.Write(data.Data); err != nil {
+			c.log.Error("failed to write", zap.Error(err))
+		}
 	}
 	c.mux.Unlock()
 }
@@ -442,41 +446,30 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 		return nil, pErr
 	}
 	p := &Permission{
-		peerAddr: peer,
-		peerData: make(chan []byte, 10),
-		c:        a.c,
 		log:      a.log.Named("permission"),
+		peerAddr: peer,
+		c:        a.c,
 	}
+	p.peerL, p.peerR = net.Pipe()
 	a.p = append(a.p, p)
 	return p, nil
 }
 
 // Permission implements net.PacketConn.
 type Permission struct {
-	log      *zap.Logger
-	mux      sync.RWMutex
-	binding  bool
-	number   uint32
-	bindErr  error
-	peerAddr PeerAddress
-	peerData chan []byte
-	c        *Client
+	log          *zap.Logger
+	mux          sync.RWMutex
+	binding      bool
+	number       uint32
+	bindErr      error
+	peerAddr     PeerAddress
+	peerL, peerR net.Conn
+	c            *Client
 }
 
 // Read data from peer.
 func (p *Permission) Read(b []byte) (n int, err error) {
-	select {
-	case <-time.After(time.Second * 1):
-		return 0, errors.New("deadline reached")
-	case d := <-p.peerData:
-		if len(b) < len(d) {
-			go func() {
-				p.peerData <- d
-			}()
-			return 0, io.ErrShortBuffer
-		}
-		return copy(b, d), nil
-	}
+	return p.peerR.Read(b)
 }
 
 // Bound returns true if channel number is bound for current permission.
@@ -545,27 +538,27 @@ func (p *Permission) Write(b []byte) (n int, err error) {
 
 // Close implements net.Conn.
 func (p *Permission) Close() error {
-	return ErrNotImplemented
+	return p.peerR.Close()
 }
 
 // LocalAddr is relayed address from TURN server.
 func (p *Permission) LocalAddr() net.Addr {
-	panic("implement me")
+	return Addr(p.c.a.relayed)
 }
 
 // RemoteAddr is peer address.
 func (p *Permission) RemoteAddr() net.Addr {
-	panic("implement me")
+	return Addr(p.peerAddr)
 }
 
 // SetDeadline implements net.Conn.
 func (p *Permission) SetDeadline(t time.Time) error {
-	return ErrNotImplemented
+	return p.peerR.SetDeadline(t)
 }
 
 // SetReadDeadline implements net.Conn.
 func (p *Permission) SetReadDeadline(t time.Time) error {
-	return ErrNotImplemented
+	return p.peerR.SetReadDeadline(t)
 }
 
 // SetWriteDeadline implements net.Conn.
