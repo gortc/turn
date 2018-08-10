@@ -355,10 +355,10 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 	}
 	if res.Type == stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse) {
 		var (
-			reladdr   RelayedAddress
+			relayed   RelayedAddress
 			reflexive stun.XORMappedAddress
 		)
-		if err := reladdr.GetFrom(res); err != nil {
+		if err := relayed.GetFrom(res); err != nil {
 			return nil, err
 		}
 		if err := reflexive.GetFrom(res); err != nil && err != stun.ErrAttributeNotFound {
@@ -368,7 +368,7 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 			c:         c,
 			log:       c.log.Named("allocation"),
 			reflexive: reflexive,
-			relayed:   reladdr,
+			relayed:   relayed,
 			minBound:  minChannelNumber,
 		}
 		c.a = a
@@ -376,13 +376,13 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 	}
 	// Anonymous allocate failed, trying to authenticate.
 	if res.Type.Method != stun.MethodAllocate {
-		return nil, errors.New("unexpected response type")
+		return nil, fmt.Errorf("unexpected response type %s", res.Type)
 	}
 	var (
 		code stun.ErrorCode
 	)
 	if code != stun.CodeUnauthorised {
-		return nil, errors.New("unexpected error code")
+		return nil, fmt.Errorf("unexpected error code %d", code)
 	}
 	return nil, errUnauthorised
 }
