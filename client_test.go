@@ -170,7 +170,23 @@ func TestClient_Allocate(t *testing.T) {
 			case <-time.After(timeout):
 				t.Fatal("timed out")
 			}
+			go func() {
+				d := ChannelData{
+					Data:   sent,
+					Number: n,
+				}
+				d.Encode()
+				if setDeadlineErr := connL.SetWriteDeadline(time.Now().Add(timeout)); setDeadlineErr != nil {
+					t.Error(setDeadlineErr)
+				}
+				if _, writeErr := connL.Write(d.Raw); writeErr != nil {
+					t.Error(writeErr)
+				}
+			}()
 			buf := make([]byte, 1500)
+			if setDeadlineErr := p.SetReadDeadline(time.Now().Add(timeout)); setDeadlineErr != nil {
+				t.Fatal(setDeadlineErr)
+			}
 			readN, readErr := p.Read(buf)
 			if readErr != nil {
 				t.Fatal(readErr)
