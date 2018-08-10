@@ -148,6 +148,12 @@ func TestClient_Allocate(t *testing.T) {
 			if bErr := p.Bind(); bErr != nil {
 				t.Error(bErr)
 			}
+			if !p.Bound() {
+				t.Error("should be bound")
+			}
+			if p.Binding() != n {
+				t.Error("invalid channel number")
+			}
 			sent := []byte{1, 2, 3, 4}
 			gotWrite := make(chan struct{})
 			timeout := time.Millisecond * 100
