@@ -389,8 +389,6 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 
 // Allocate creates an allocation for current 5-tuple. Currently there can be
 // only one allocation per client, because client wraps one net.Conn.
-//
-// TODO: simplify
 func (c *Client) Allocate() (*Allocation, error) {
 	var (
 		nonce stun.Nonce
