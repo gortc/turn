@@ -24,6 +24,8 @@ type Allocation struct {
 	reflexive stun.XORMappedAddress
 	p         []*Permission
 	minBound  ChannelNumber
+	integrity stun.MessageIntegrity
+	nonce     stun.Nonce
 }
 
 // Client for TURN server.
@@ -360,11 +362,15 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 		var (
 			relayed   RelayedAddress
 			reflexive stun.XORMappedAddress
+			nonce     stun.Nonce
 		)
 		if err := relayed.GetFrom(res); err != nil {
 			return nil, err
 		}
 		if err := reflexive.GetFrom(res); err != nil && err != stun.ErrAttributeNotFound {
+			return nil, err
+		}
+		if err := nonce.GetFrom(req); err != nil && err != stun.ErrAttributeNotFound {
 			return nil, err
 		}
 		a := &Allocation{
@@ -373,6 +379,8 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 			reflexive: reflexive,
 			relayed:   relayed,
 			minBound:  minChannelNumber,
+			integrity: c.integrity,
+			nonce:     nonce,
 		}
 		c.a = a
 		return a, nil
@@ -439,9 +447,25 @@ func (c *Client) Allocate() (*Allocation, error) {
 // CreateUDP creates new UDP Permission to peer.
 func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 	var pErr error
-	if err := a.c.stun.Do(stun.MustBuild(
-		stun.TransactionID, stun.NewType(stun.MethodCreatePermission, stun.ClassRequest), peer,
-	), func(e stun.Event) {
+	req := stun.New()
+	req.TransactionID = stun.NewTransactionID()
+	req.Type = stun.NewType(stun.MethodCreatePermission, stun.ClassRequest)
+	req.WriteHeader()
+	setters := make([]stun.Setter, 0, 10)
+	setters = append(setters, peer)
+	if len(a.integrity) > 0 {
+		// Applying auth.
+		setters = append(setters,
+			a.nonce, a.c.username, a.integrity,
+		)
+	}
+	setters = append(setters, stun.Fingerprint)
+	for _, s := range setters {
+		if setErr := s.AddTo(req); setErr != nil {
+			return nil, setErr
+		}
+	}
+	if err := a.c.stun.Do(req, func(e stun.Event) {
 		e.Error = pErr
 	}); err != nil {
 		return nil, err

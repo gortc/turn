@@ -147,6 +147,8 @@ func TestClient_Allocate(t *testing.T) {
 			Username: "user",
 			Password: "secret",
 		})
+		integrity := stun.NewLongTermIntegrity("user", "realm", "secret")
+		serverNonce := stun.NewNonce("nonce")
 		if createErr != nil {
 			t.Fatal(createErr)
 		}
@@ -167,14 +169,16 @@ func TestClient_Allocate(t *testing.T) {
 				f(stun.Event{
 					Message: stun.MustBuild(m, stun.NewType(stun.MethodAllocate, stun.ClassErrorResponse),
 						stun.NewRealm("realm"),
-						stun.NewNonce("nonce"),
+						serverNonce,
 						stun.CodeUnauthorised,
 						stun.Fingerprint,
 					),
 				})
 				return nil
 			}
-			integrity := stun.NewLongTermIntegrity("user", "realm", "secret")
+			if !bytes.Equal(nonce, serverNonce) {
+				t.Error("nonces not equal")
+			}
 			if integrityErr := integrity.Check(m); integrityErr != nil {
 				t.Errorf("integrity check failed: %v", integrityErr)
 			}
@@ -202,8 +206,22 @@ func TestClient_Allocate(t *testing.T) {
 			if m.Type != stun.NewType(stun.MethodCreatePermission, stun.ClassRequest) {
 				t.Errorf("bad request type: %s", m.Type)
 			}
+			var (
+				nonce    stun.Nonce
+				username stun.Username
+			)
+			if parseErr := m.Parse(&nonce, &username); parseErr != nil {
+				return parseErr
+			}
+			if !bytes.Equal(nonce, serverNonce) {
+				t.Error("nonces not equal")
+			}
+			if integrityErr := integrity.Check(m); integrityErr != nil {
+				t.Errorf("integrity check failed: %v", integrityErr)
+			}
 			f(stun.Event{
 				Message: stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+					integrity,
 					stun.Fingerprint,
 				),
 			})
@@ -211,7 +229,7 @@ func TestClient_Allocate(t *testing.T) {
 		}
 		p, permErr := a.CreateUDP(peer)
 		if permErr != nil {
-			t.Fatal(allocErr)
+			t.Fatal(permErr)
 		}
 		stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
 			t.Fatal("should not be called")
