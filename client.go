@@ -6,13 +6,10 @@ import (
 	"io"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-
 	"github.com/gortc/stun"
+	"go.uber.org/zap"
 )
 
 // Allocation reflects TURN Allocation.
@@ -52,15 +49,6 @@ type ClientOptions struct {
 	Username string
 	Password string
 	Realm    string
-}
-
-func stunLog(ce *zapcore.CheckedEntry, data []byte) {
-	m := &stun.Message{
-		Raw: data,
-	}
-	if err := m.Decode(); err == nil {
-		ce.Write(zap.Stringer("msg", m))
-	}
 }
 
 // NewClient creates and initializes new TURN client.
@@ -147,7 +135,7 @@ func (c *Client) handleChannelData(data *ChannelData) {
 	c.log.Debug("handleChannelData", zap.Uint32("n", uint32(data.Number)))
 	c.mux.Lock()
 	for i := range c.a.p {
-		if data.Number != ChannelNumber(atomic.LoadUint32(&c.a.p[i].number)) {
+		if data.Number != c.a.p[i].Binding() {
 			continue
 		}
 		if _, err := c.a.p[i].peerL.Write(data.Data); err != nil {
@@ -366,8 +354,7 @@ type Permission struct {
 	log          *zap.Logger
 	mux          sync.RWMutex
 	binding      bool
-	number       uint32
-	bindErr      error
+	number       ChannelNumber
 	peerAddr     PeerAddress
 	peerL, peerR net.Conn
 	c            *Client
@@ -380,12 +367,16 @@ func (p *Permission) Read(b []byte) (n int, err error) {
 
 // Bound returns true if channel number is bound for current permission.
 func (p *Permission) Bound() bool {
-	return atomic.LoadUint32(&p.number) == 0
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+	return p.number.Valid()
 }
 
 // Binding returns current channel number or 0 if not bound.
 func (p *Permission) Binding() ChannelNumber {
-	return ChannelNumber(atomic.LoadUint32(&p.number))
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+	return p.number
 }
 
 // ErrBindingInProgress means that previous binding transaction for selected permission
@@ -412,29 +403,37 @@ func (p *Permission) Bind() error {
 	}
 	p.c.a.minBound++
 	n := p.c.a.minBound
+
 	// Starting transaction.
+	var transactionErr error
+	res := stun.New()
 	if err := p.c.bind(p, n, func(e stun.Event) {
-		p.bindErr = e.Error
-		p.binding = false
-		if e.Error == nil {
-			// Binding succeed.
-			atomic.StoreUint32(&p.number, uint32(n))
+		if e.Error != nil {
+			transactionErr = e.Error
+			return
 		}
+		transactionErr = e.Message.CloneTo(res)
 	}); err != nil {
 		return err
 	}
-	return p.bindErr
+	if transactionErr != nil {
+		return transactionErr
+	}
+	if res.Type != stun.NewType(stun.MethodChannelBind, stun.ClassSuccessResponse) {
+		return fmt.Errorf("unexpected response type %s", res.Type)
+	}
+	return nil
 }
 
 // Write sends buffer to peer.
 //
 // If permission is bound, the ChannelData message will be used.
 func (p *Permission) Write(b []byte) (n int, err error) {
-	if n := atomic.LoadUint32(&p.number); n != 0 {
+	if n := p.Binding(); n.Valid() {
 		if ce := p.log.Check(zap.DebugLevel, "using channel data to write"); ce != nil {
 			ce.Write()
 		}
-		return p.c.sendChan(b, ChannelNumber(n))
+		return p.c.sendChan(b, n)
 	}
 	if ce := p.log.Check(zap.DebugLevel, "using STUN to write"); ce != nil {
 		ce.Write()

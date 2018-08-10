@@ -21,18 +21,17 @@ func (t testSTUN) Indicate(m *stun.Message) error { return t.indicate(m) }
 
 func (t testSTUN) Do(m *stun.Message, f func(e stun.Event)) error { return t.do(m, f) }
 
+func ensureNoErrors(t *testing.T, logs *observer.ObservedLogs) {
+	for _, e := range logs.TakeAll() {
+		if e.Level == zapcore.ErrorLevel {
+			t.Error(e.Message)
+		}
+	}
+}
+
 func TestClient_Allocate(t *testing.T) {
 	t.Run("Anonymous", func(t *testing.T) {
 		core, logs := observer.New(zapcore.DebugLevel)
-		defer func() {
-			t.Logf("logs: %d", logs.Len())
-			// Ensure that there were no errors logged.
-			for _, e := range logs.All() {
-				if e.Level == zapcore.ErrorLevel {
-					t.Error(e.Message)
-				}
-			}
-		}()
 		logger := zap.New(core)
 		connL, connR := net.Pipe()
 		connL.Close()
@@ -123,18 +122,27 @@ func TestClient_Allocate(t *testing.T) {
 		if !bytes.Equal(buf[:n], sent) {
 			t.Error("data mismatch")
 		}
+		ensureNoErrors(t, logs)
+		t.Run("Binding", func(t *testing.T) {
+			stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+				if m.Type != stun.NewType(stun.MethodChannelBind, stun.ClassRequest) {
+					t.Errorf("unexpected type %s", m.Type)
+				}
+				f(stun.Event{
+					Message: stun.MustBuild(m,
+						stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+					),
+				})
+				return nil
+			}
+			if bErr := p.Bind(); bErr != nil {
+				t.Error(bErr)
+			}
+			ensureNoErrors(t, logs)
+		})
 	})
 	t.Run("Authenticated", func(t *testing.T) {
 		core, logs := observer.New(zapcore.DebugLevel)
-		defer func() {
-			t.Logf("logs: %d", logs.Len())
-			// Ensure that there were no errors logged.
-			for _, e := range logs.All() {
-				if e.Level == zapcore.ErrorLevel {
-					t.Error(e, e.ContextMap())
-				}
-			}
-		}()
 		logger := zap.New(core)
 		connL, connR := net.Pipe()
 		connL.Close()
@@ -267,5 +275,6 @@ func TestClient_Allocate(t *testing.T) {
 		if !bytes.Equal(buf[:n], sent) {
 			t.Error("data mismatch")
 		}
+		ensureNoErrors(t, logs)
 	})
 }

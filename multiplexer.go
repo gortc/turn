@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/gortc/stun"
 )
@@ -94,6 +95,15 @@ func (m *multiplexer) close() {
 	}
 	if closeErr := m.dataR.Close(); closeErr != nil {
 		m.log.Error("failed to close dataR", zap.Error(closeErr))
+	}
+}
+
+func stunLog(ce *zapcore.CheckedEntry, data []byte) {
+	m := &stun.Message{
+		Raw: data,
+	}
+	if err := m.Decode(); err == nil {
+		ce.Write(zap.Stringer("msg", m))
 	}
 }
 
