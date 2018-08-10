@@ -11,9 +11,8 @@ type Addr struct {
 	Port int
 }
 
-func (Addr) Network() string {
-	return "turn"
-}
+// Network implements net.Addr.
+func (Addr) Network() string { return "turn" }
 
 // FromUDPAddr sets addr to UDPAddr.
 func (a *Addr) FromUDPAddr(n *net.UDPAddr) {
