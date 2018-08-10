@@ -379,10 +379,6 @@ func (p *Permission) Binding() ChannelNumber {
 	return p.number
 }
 
-// ErrBindingInProgress means that previous binding transaction for selected permission
-// is still in progress.
-var ErrBindingInProgress = errors.New("binding in progress")
-
 // ErrAlreadyBound means that selected permission already has bound channel number.
 var ErrAlreadyBound = errors.New("channel already bound")
 
@@ -393,11 +389,6 @@ var ErrAlreadyBound = errors.New("channel already bound")
 func (p *Permission) Bind() error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
-
-	if p.binding {
-		return ErrBindingInProgress
-	}
-	p.binding = true
 	if p.number != 0 {
 		return ErrAlreadyBound
 	}

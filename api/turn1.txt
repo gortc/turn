@@ -111,7 +111,6 @@ pkg github.com/gortc/turn, var CreatePermissionRequest stun.MessageType
 pkg github.com/gortc/turn, var DontFragment DontFragmentAttr
 pkg github.com/gortc/turn, var ErrAlreadyBound error
 pkg github.com/gortc/turn, var ErrBadChannelDataLength error
-pkg github.com/gortc/turn, var ErrBindingInProgress error
 pkg github.com/gortc/turn, var ErrInvalidChannelNumber error
 pkg github.com/gortc/turn, var ErrNotImplemented error
 pkg github.com/gortc/turn, var RefreshRequest stun.MessageType
