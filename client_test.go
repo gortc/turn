@@ -5,6 +5,10 @@ import (
 	"net"
 	"testing"
 
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
+
 	"github.com/gortc/stun"
 )
 
@@ -18,10 +22,22 @@ func (t testSTUN) Indicate(m *stun.Message) error { return t.indicate(m) }
 func (t testSTUN) Do(m *stun.Message, f func(e stun.Event)) error { return t.do(m, f) }
 
 func TestClient_Allocate(t *testing.T) {
+	core, logs := observer.New(zapcore.DebugLevel)
+	defer func() {
+		t.Logf("logs: %d", logs.Len())
+		// Ensure that there were no errors logged.
+		for _, e := range logs.All() {
+			if e.Level == zapcore.ErrorLevel {
+				t.Error(e.Message)
+			}
+		}
+	}()
+	logger := zap.New(core)
 	connL, connR := net.Pipe()
 	connL.Close()
 	stunClient := &testSTUN{}
 	c, createErr := NewClient(ClientOptions{
+		Log:  logger,
 		Conn: connR, // should not be used
 		STUN: stunClient,
 	})
