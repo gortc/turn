@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -34,7 +35,6 @@ func TestClient_Allocate(t *testing.T) {
 		core, logs := observer.New(zapcore.DebugLevel)
 		logger := zap.New(core)
 		connL, connR := net.Pipe()
-		connL.Close()
 		stunClient := &testSTUN{}
 		c, createErr := NewClient(ClientOptions{
 			Log:  logger,
@@ -124,9 +124,19 @@ func TestClient_Allocate(t *testing.T) {
 		}
 		ensureNoErrors(t, logs)
 		t.Run("Binding", func(t *testing.T) {
+			var (
+				n        ChannelNumber
+				bindPeer PeerAddress
+			)
 			stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
 				if m.Type != stun.NewType(stun.MethodChannelBind, stun.ClassRequest) {
 					t.Errorf("unexpected type %s", m.Type)
+				}
+				if parseErr := m.Parse(&n, &bindPeer); parseErr != nil {
+					t.Error(parseErr)
+				}
+				if !Addr(bindPeer).Equal(Addr(peer)) {
+					t.Errorf("unexpected bind peer %s", bindPeer)
 				}
 				f(stun.Event{
 					Message: stun.MustBuild(m,
@@ -137,6 +147,36 @@ func TestClient_Allocate(t *testing.T) {
 			}
 			if bErr := p.Bind(); bErr != nil {
 				t.Error(bErr)
+			}
+			sent := []byte{1, 2, 3, 4}
+			gotWrite := make(chan struct{})
+			timeout := time.Millisecond * 100
+			go func() {
+				buf := make([]byte, 1500)
+				connL.SetReadDeadline(time.Now().Add(timeout))
+				readN, readErr := connL.Read(buf)
+				if readErr != nil {
+					t.Error("failed to read")
+				}
+				buf = buf[:readN]
+				gotWrite <- struct{}{}
+			}()
+			if _, writeErr := p.Write(sent); writeErr != nil {
+				t.Fatal(writeErr)
+			}
+			select {
+			case <-gotWrite:
+				// success
+			case <-time.After(timeout):
+				t.Fatal("timed out")
+			}
+			buf := make([]byte, 1500)
+			readN, readErr := p.Read(buf)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if !bytes.Equal(buf[:readN], sent) {
+				t.Error("data mismatch")
 			}
 			ensureNoErrors(t, logs)
 		})
