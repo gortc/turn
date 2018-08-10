@@ -5,17 +5,20 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/gortc/stun"
 )
 
 // Allocation reflects TURN Allocation.
 type Allocation struct {
+	log       *zap.Logger
 	c         *Client
 	reladdr   RelayedAddress
 	reflexive stun.XORMappedAddress
@@ -27,6 +30,7 @@ type Allocation struct {
 //
 // Provides transparent net.Conn interfaces to remote peers.
 type Client struct {
+	log       *zap.Logger
 	con       net.Conn
 	stun      STUNClient
 	mux       sync.Mutex
@@ -40,7 +44,8 @@ type Client struct {
 // ClientOptions contains available config for TURN  client.
 type ClientOptions struct {
 	Conn net.Conn
-	STUN STUNClient // optional STUN client
+	STUN STUNClient  // optional STUN client
+	Log  *zap.Logger // defaults to Nop
 
 	// Long-term integrity.
 	Username string
@@ -48,18 +53,19 @@ type ClientOptions struct {
 	Realm    string
 }
 
-func stunLog(data []byte) {
+func stunLog(ce *zapcore.CheckedEntry, data []byte) {
 	m := &stun.Message{
 		Raw: data,
 	}
 	if err := m.Decode(); err == nil {
-		log.Println("stun:", m)
+		ce.Write(zap.Stringer("msg", m))
 	}
 }
 
 // multiplexer de-multiplexes STUN, TURN and application data
 // from one connection into separate ones.
 type multiplexer struct {
+	log      *zap.Logger
 	capacity int
 	conn     net.Conn
 
@@ -113,8 +119,8 @@ func (w bypassWriter) Write(b []byte) (n int, err error) {
 	return w.writer.Write(b)
 }
 
-func newMultiplexer(conn net.Conn) *multiplexer {
-	m := &multiplexer{conn: conn, capacity: 1500}
+func newMultiplexer(conn net.Conn, log *zap.Logger) *multiplexer {
+	m := &multiplexer{conn: conn, capacity: 1500, log: log}
 	m.stunL, m.stunR = net.Pipe()
 	m.turnL, m.turnR = net.Pipe()
 	m.dataL, m.dataR = net.Pipe()
@@ -125,7 +131,19 @@ func newMultiplexer(conn net.Conn) *multiplexer {
 func (m *multiplexer) discardData() {
 	_, err := io.Copy(ioutil.Discard, m.dataL)
 	if err != nil {
-		log.Println("discardData:", err)
+		m.log.Error("discard error", zap.Error(err))
+	}
+}
+
+func (m *multiplexer) close() {
+	if closeErr := m.turnR.Close(); closeErr != nil {
+		m.log.Error("failed to close turnR", zap.Error(closeErr))
+	}
+	if closeErr := m.stunR.Close(); closeErr != nil {
+		m.log.Error("failed to close stunR", zap.Error(closeErr))
+	}
+	if closeErr := m.dataR.Close(); closeErr != nil {
+		m.log.Error("failed to close dataR", zap.Error(closeErr))
 	}
 }
 
@@ -133,37 +151,34 @@ func (m *multiplexer) readUntilClosed() {
 	buf := make([]byte, m.capacity)
 	for {
 		n, err := m.conn.Read(buf)
-		log.Println("multiplexer: read", n, err)
+		if ce := m.log.Check(zap.DebugLevel, "read"); ce != nil {
+			ce.Write(zap.Error(err), zap.Int("n", n))
+		}
 		if err != nil {
 			// End of cycle.
 			// TODO: Handle timeouts and temporary errors.
-			if closeErr := m.turnR.Close(); closeErr != nil {
-				log.Println("failed to close turnR:", closeErr)
-			}
-			if closeErr := m.stunR.Close(); closeErr != nil {
-				log.Println("failed to close turnR:", closeErr)
-			}
-			if closeErr := m.dataR.Close(); closeErr != nil {
-				log.Println("failed to close turnR:", closeErr)
-			}
+			m.log.Error("failed to read", zap.Error(err))
+			m.close()
 			break
 		}
 		data := buf[:n]
 		conn := m.dataR
 		switch {
 		case stun.IsMessage(data):
-			log.Println("multiplexer: got STUN data")
-			stunLog(data)
+			m.log.Debug("got STUN data")
+			if ce := m.log.Check(zap.DebugLevel, "stun message"); ce != nil {
+				stunLog(ce, data)
+			}
 			conn = m.stunR
 		case IsChannelData(data):
-			log.Println("multiplexer: got TURN data")
+			m.log.Debug("got TURN data")
 			conn = m.turnR
 		default:
-			log.Println("multiplexer: got APP data")
+			m.log.Debug("got APP data")
 		}
 		_, err = conn.Write(data)
 		if err != nil {
-			log.Println("write err:", err)
+			m.log.Warn("failed to write", zap.Error(err))
 		}
 	}
 }
@@ -173,12 +188,16 @@ func NewClient(o ClientOptions) (*Client, error) {
 	if o.Conn == nil {
 		return nil, errors.New("connection not provided")
 	}
+	if o.Log == nil {
+		o.Log = zap.NewNop()
+	}
 	c := &Client{
 		password: o.Password,
+		log:      o.Log,
 	}
 	if o.STUN == nil {
 		// Setting up de-multiplexing.
-		m := newMultiplexer(o.Conn)
+		m := newMultiplexer(o.Conn, c.log.Named("multiplexer"))
 		go m.discardData() // discarding any non-stun/turn data
 		o.Conn = bypassWriter{
 			reader: m.turnL,
@@ -221,7 +240,6 @@ func (c *Client) stunHandler(e stun.Event) {
 		// Just ignoring.
 		return
 	}
-	fmt.Println("turn client: got", e.Message)
 	if e.Message.Type != stun.NewType(stun.MethodData, stun.ClassIndication) {
 		return
 	}
@@ -230,7 +248,7 @@ func (c *Client) stunHandler(e stun.Event) {
 		addr PeerAddress
 	)
 	if err := e.Message.Parse(&data, &addr); err != nil {
-		log.Println("failed to parse:", err)
+		c.log.Error("failed to parse while handling incoming STUN message", zap.Error(err))
 		return
 	}
 	c.mux.Lock()
@@ -244,7 +262,7 @@ func (c *Client) stunHandler(e stun.Event) {
 }
 
 func (c *Client) handleChannelData(data *ChannelData) {
-	log.Println("handleChannelData:", data.Number)
+	c.log.Debug("handleChannelData", zap.Uint32("n", uint32(data.Number)))
 	c.mux.Lock()
 	for i := range c.a.p {
 		if data.Number != ChannelNumber(atomic.LoadUint32(&c.a.p[i].number)) {
@@ -260,7 +278,7 @@ func (c *Client) readUntilClosed() {
 	for {
 		n, err := c.con.Read(buf)
 		if err != nil {
-			log.Println("client.readUntilClosed:", err)
+			c.log.Error("read failed", zap.Error(err))
 			break
 		}
 		data := buf[:n]
@@ -344,6 +362,7 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 		}
 		a := &Allocation{
 			c:         c,
+			log:       c.log.Named("allocation"),
 			reflexive: reflexive,
 			reladdr:   reladdr,
 			minBound:  minChannelNumber,
@@ -426,6 +445,7 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 		peerAddr: peer,
 		peerData: make(chan []byte, 10),
 		c:        a.c,
+		log:      a.log.Named("permission"),
 	}
 	a.p = append(a.p, p)
 	return p, nil
@@ -433,6 +453,7 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 
 // Permission implements net.PacketConn.
 type Permission struct {
+	log      *zap.Logger
 	mux      sync.RWMutex
 	binding  bool
 	number   uint32
@@ -511,10 +532,14 @@ func (p *Permission) Bind() error {
 // If permission is bound, the ChannelData message will be used.
 func (p *Permission) Write(b []byte) (n int, err error) {
 	if n := atomic.LoadUint32(&p.number); n != 0 {
-		log.Println("using channel data to write")
+		if ce := p.log.Check(zap.DebugLevel, "using channel data to write"); ce != nil {
+			ce.Write()
+		}
 		return p.c.sendChan(b, ChannelNumber(n))
 	}
-	log.Println("using STUN to write")
+	if ce := p.log.Check(zap.DebugLevel, "using STUN to write"); ce != nil {
+		ce.Write()
+	}
 	return p.c.sendData(b, &p.peerAddr)
 }
 

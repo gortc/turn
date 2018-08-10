@@ -102,6 +102,7 @@ func main() {
 		zap.Stringer("peer", echoAddr),
 	)
 	client, err := turn.NewClient(turn.ClientOptions{
+		Log:  logger.Named("client"),
 		Conn: c,
 	})
 	if err != nil {
