@@ -282,6 +282,9 @@ func (c *Client) readUntilClosed() {
 	for {
 		n, err := c.con.Read(buf)
 		if err != nil {
+			if err == io.EOF {
+				continue
+			}
 			c.log.Error("read failed", zap.Error(err))
 			break
 		}
@@ -379,9 +382,12 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 		return nil, fmt.Errorf("unexpected response type %s", res.Type)
 	}
 	var (
-		code stun.ErrorCode
+		code stun.ErrorCodeAttribute
 	)
-	if code != stun.CodeUnauthorised {
+	if err := code.GetFrom(res); err != nil {
+		return nil, err
+	}
+	if code.Code != stun.CodeUnauthorised {
 		return nil, fmt.Errorf("unexpected error code %d", code)
 	}
 	return nil, errUnauthorised
