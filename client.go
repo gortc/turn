@@ -20,7 +20,7 @@ import (
 type Allocation struct {
 	log       *zap.Logger
 	c         *Client
-	reladdr   RelayedAddress
+	relayed   RelayedAddress
 	reflexive stun.XORMappedAddress
 	p         []*Permission
 	minBound  ChannelNumber
@@ -364,7 +364,7 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 			c:         c,
 			log:       c.log.Named("allocation"),
 			reflexive: reflexive,
-			reladdr:   reladdr,
+			relayed:   reladdr,
 			minBound:  minChannelNumber,
 		}
 		c.a = a
