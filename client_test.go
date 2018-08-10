@@ -33,6 +33,9 @@ func TestClient_Allocate(t *testing.T) {
 		return nil
 	}
 	stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+		if m.Type != AllocateRequest {
+			t.Errorf("bad request type: %s", m.Type)
+		}
 		f(stun.Event{
 			Message: stun.MustBuild(m, stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse),
 				&RelayedAddress{
@@ -52,11 +55,29 @@ func TestClient_Allocate(t *testing.T) {
 		IP:   net.IPv4(127, 0, 0, 1),
 		Port: 1001,
 	}
+	stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+		if m.Type != stun.NewType(stun.MethodCreatePermission, stun.ClassRequest) {
+			t.Errorf("bad request type: %s", m.Type)
+		}
+		f(stun.Event{
+			Message: stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+				stun.Fingerprint,
+			),
+		})
+		return nil
+	}
 	p, permErr := a.CreateUDP(peer)
 	if permErr != nil {
 		t.Fatal(allocErr)
 	}
+	stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+		t.Fatal("should not be called")
+		return nil
+	}
 	stunClient.indicate = func(m *stun.Message) error {
+		if m.Type != stun.NewType(stun.MethodSend, stun.ClassIndication) {
+			t.Errorf("bad request type: %s", m.Type)
+		}
 		var (
 			data     Data
 			peerAddr PeerAddress
@@ -73,7 +94,8 @@ func TestClient_Allocate(t *testing.T) {
 		})
 		return nil
 	}
-	if _, writeErr := p.Write([]byte{1, 2, 3, 4}); writeErr != nil {
+	sent := []byte{1, 2, 3, 4}
+	if _, writeErr := p.Write(sent); writeErr != nil {
 		t.Fatal(writeErr)
 	}
 	buf := make([]byte, 1500)
@@ -81,7 +103,7 @@ func TestClient_Allocate(t *testing.T) {
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
-	if !bytes.Equal(buf[:n], []byte{1, 2, 3, 4}) {
+	if !bytes.Equal(buf[:n], sent) {
 		t.Error("data mismatch")
 	}
 }
