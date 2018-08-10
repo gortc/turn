@@ -1,10 +1,11 @@
 package turn
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -18,7 +19,8 @@ type Allocation struct {
 	reladdr   RelayedAddress
 	reflexive stun.XORMappedAddress
 	nonce     stun.Nonce
-	p         []Permission
+	p         []*Permission
+	minBound  ChannelNumber
 }
 
 // Client for TURN server.
@@ -46,30 +48,152 @@ type ClientOptions struct {
 	Realm    string
 }
 
+func stunLog(data []byte) {
+	m := &stun.Message{
+		Raw: data,
+	}
+	if err := m.Decode(); err == nil {
+		log.Println("stun:", m)
+	}
+}
+
+// multiplexer de-multiplexes STUN, TURN and application data
+// from one connection into separate ones.
+type multiplexer struct {
+	capacity int
+	conn     net.Conn
+
+	stunL, stunR net.Conn
+	turnL, turnR net.Conn
+	dataL, dataR net.Conn
+}
+
+type bypassWriter struct {
+	reader net.Conn
+	writer net.Conn
+}
+
+func (w bypassWriter) Close() error {
+	rErr := w.reader.Close()
+	wErr := w.writer.Close()
+	if rErr == nil && wErr == nil {
+		return nil
+	}
+	return fmt.Errorf("reader: %v, writer: %v", rErr, wErr)
+}
+
+func (w bypassWriter) LocalAddr() net.Addr {
+	return w.writer.LocalAddr()
+}
+
+func (w bypassWriter) Read(b []byte) (n int, err error) {
+	return w.reader.Read(b)
+}
+
+func (w bypassWriter) RemoteAddr() net.Addr {
+	return w.writer.RemoteAddr()
+}
+
+func (w bypassWriter) SetDeadline(t time.Time) error {
+	if err := w.writer.SetDeadline(t); err != nil {
+		return err
+	}
+	return w.reader.SetDeadline(t)
+}
+
+func (w bypassWriter) SetReadDeadline(t time.Time) error {
+	return w.reader.SetReadDeadline(t)
+}
+
+func (w bypassWriter) SetWriteDeadline(t time.Time) error {
+	return w.writer.SetWriteDeadline(t)
+}
+
+func (w bypassWriter) Write(b []byte) (n int, err error) {
+	return w.writer.Write(b)
+}
+
+func newMultiplexer(conn net.Conn) *multiplexer {
+	m := &multiplexer{conn: conn, capacity: 1500}
+	m.stunL, m.stunR = net.Pipe()
+	m.turnL, m.turnR = net.Pipe()
+	m.dataL, m.dataR = net.Pipe()
+	go m.readUntilClosed()
+	return m
+}
+
+func (m *multiplexer) discardData() {
+	io.Copy(ioutil.Discard, m.dataL)
+}
+
+func (m *multiplexer) readUntilClosed() {
+	buf := make([]byte, m.capacity)
+	for {
+		n, err := m.conn.Read(buf)
+		log.Println("multiplexer: read", n, err)
+		if err != nil {
+			// End of cycle.
+			// TODO: Handle timeouts and temporary errors.
+			m.turnR.Close()
+			m.stunR.Close()
+			m.dataR.Close()
+			break
+		}
+		data := buf[:n]
+		conn := m.dataR
+		switch {
+		case stun.IsMessage(data):
+			log.Println("multiplexer: got STUN data")
+			stunLog(data)
+			conn = m.stunR
+		case IsChannelData(data):
+			log.Println("multiplexer: got TURN data")
+			conn = m.turnR
+		default:
+			log.Println("multiplexer: got APP data")
+		}
+		conn.Write(data)
+	}
+}
+
 func NewClient(o ClientOptions) (*Client, error) {
 	if o.Conn == nil {
 		return nil, errors.New("connection not provided")
 	}
+	c := &Client{
+		password: o.Password,
+	}
 	if o.STUN == nil {
+		// Setting up de-multiplexing.
+		m := newMultiplexer(o.Conn)
+		go m.discardData() // discarding any non-stun/turn data
+		o.Conn = bypassWriter{
+			reader: m.turnL,
+			writer: m.conn,
+		}
+		// Starting STUN client on multiplexed connection.
 		var err error
 		o.STUN, err = stun.NewClient(stun.ClientOptions{
-			Connection: o.Conn,
+			Handler: c.stunHandler,
+			Connection: bypassWriter{
+				reader: m.stunL,
+				writer: m.conn,
+			},
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
-	c := &Client{
-		stun:     o.STUN,
-		con:      o.Conn,
-		password: o.Password,
-	}
+	c.stun = o.STUN
+	c.con = o.Conn
+
 	if o.Username != "" {
 		c.username = stun.NewUsername(o.Username)
 	}
 	if o.Realm != "" {
 		c.realm = stun.NewRealm(o.Realm)
 	}
+	go c.readUntilClosed()
 	return c, nil
 }
 
@@ -77,6 +201,68 @@ func NewClient(o ClientOptions) (*Client, error) {
 type STUNClient interface {
 	Indicate(m *stun.Message) error
 	Do(m *stun.Message, f func(e stun.Event)) error
+}
+
+func (c *Client) stunHandler(e stun.Event) {
+	if e.Error != nil {
+		// Just ignoring.
+		return
+	}
+	fmt.Println("turn client: got", e.Message)
+	if e.Message.Type != stun.NewType(stun.MethodData, stun.ClassIndication) {
+		return
+	}
+	var (
+		data Data
+		addr PeerAddress
+	)
+	if err := e.Message.Parse(&data, &addr); err != nil {
+		log.Println("failed to parse:", err)
+		return
+	}
+	c.mux.Lock()
+	for i := range c.a.p {
+		if !Addr(c.a.p[i].peerAddr).Equal(Addr(addr)) {
+			continue
+		}
+		c.a.p[i].peerData <- data
+	}
+	c.mux.Unlock()
+}
+
+func (c *Client) handleChannelData(data *ChannelData) {
+	log.Println("handleChannelData:", data.Number)
+	c.mux.Lock()
+	for i := range c.a.p {
+		if data.Number != ChannelNumber(atomic.LoadUint32(&c.a.p[i].number)) {
+			continue
+		}
+		c.a.p[i].peerData <- data.Data
+	}
+	c.mux.Unlock()
+}
+
+func (c *Client) readUntilClosed() {
+	buf := make([]byte, 1500)
+	for {
+		n, err := c.con.Read(buf)
+		if err != nil {
+			log.Println("client.readUntilClosed:", err)
+			break
+		}
+		data := buf[:n]
+		if !IsChannelData(data) {
+			continue
+		}
+		cData := &ChannelData{
+			Raw: make([]byte, n),
+		}
+		copy(cData.Raw, data)
+		if err := cData.Decode(); err != nil {
+			panic(err)
+		}
+		go c.handleChannelData(cData)
+	}
 }
 
 func (c *Client) sendData(buf []byte, peerAddr *PeerAddress) (int, error) {
@@ -103,13 +289,10 @@ func (c *Client) sendChan(buf []byte, n ChannelNumber) (int, error) {
 }
 
 func (c *Client) bind(p *Permission, n ChannelNumber, f stun.Handler) error {
-	s := make([]stun.Setter, 0, 10)
-	s = append(s,
-		stun.TransactionID,
-	)
-
 	return c.stun.Do(stun.MustBuild(stun.TransactionID,
-		stun.NewType(stun.MethodSend, stun.ClassIndication),
+		stun.NewType(stun.MethodChannelBind, stun.ClassRequest),
+		n, &p.peerAddr,
+		stun.Fingerprint,
 	), f)
 }
 
@@ -160,6 +343,7 @@ func (c *Client) Allocate() (*Allocation, error) {
 			c:         c,
 			reflexive: reflexive,
 			reladdr:   reladdr,
+			minBound:  minChannelNumber,
 		}
 		c.a = a
 		return a, nil
@@ -225,6 +409,7 @@ func (c *Client) Allocate() (*Allocation, error) {
 			reflexive: reflexive,
 			reladdr:   reladdr,
 			nonce:     nonce,
+			minBound:  minChannelNumber,
 		}
 		c.a = a
 		return a, nil
@@ -253,6 +438,7 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 		peerData: make(chan []byte, 10),
 		c:        a.c,
 	}
+	a.p = append(a.p, p)
 	return p, nil
 }
 
@@ -272,7 +458,7 @@ type Permission struct {
 // Read data from peer.
 func (p *Permission) Read(b []byte) (n int, err error) {
 	select {
-	case <-time.After(time.Second):
+	case <-time.After(time.Second * 1):
 		return 0, errors.New("deadline reached")
 	case d := <-p.peerData:
 		if len(b) < len(d) {
@@ -305,9 +491,8 @@ var ErrAlreadyBound = errors.New("channel already bound")
 // Bind performs binding transaction, allocating channel binding for
 // the permission.
 //
-// TODO: Handle ctx cancellation
 // TODO: Start binding refresh cycle
-func (p *Permission) Bind(ctx context.Context, n ChannelNumber) error {
+func (p *Permission) Bind() error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -318,7 +503,8 @@ func (p *Permission) Bind(ctx context.Context, n ChannelNumber) error {
 	if p.number != 0 {
 		return ErrAlreadyBound
 	}
-
+	p.c.a.minBound++
+	n := p.c.a.minBound
 	// Starting transaction.
 	if err := p.c.bind(p, n, func(e stun.Event) {
 		p.bindErr = e.Error
@@ -338,8 +524,10 @@ func (p *Permission) Bind(ctx context.Context, n ChannelNumber) error {
 // If permission is bound, the ChannelData message will be used.
 func (p *Permission) Write(b []byte) (n int, err error) {
 	if n := atomic.LoadUint32(&p.number); n != 0 {
+		log.Println("using channel data to write")
 		return p.c.sendChan(b, ChannelNumber(n))
 	}
+	log.Println("using STUN to write")
 	return p.c.sendData(b, &p.peerAddr)
 }
 

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"bytes"
-	"github.com/gortc/stun"
 	"github.com/gortc/turn"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -17,42 +16,6 @@ const (
 	udp      = "udp"
 	peerPort = 56780
 )
-
-func isErr(m *stun.Message) bool {
-	return m.Type.Class == stun.ClassErrorResponse
-}
-
-func do(logger *zap.Logger, req, res *stun.Message, c *net.UDPConn, attrs ...stun.Setter) error {
-	start := time.Now()
-	if err := req.Build(attrs...); err != nil {
-		logger.Error("failed to build", zap.Error(err))
-		return err
-	}
-	if _, err := req.WriteTo(c); err != nil {
-		logger.Error("failed to write",
-			zap.Error(err), zap.Stringer("m", req),
-		)
-		return err
-	}
-	logger.Info("sent message", zap.Stringer("m", req), zap.Stringer("t", req.Type))
-	if cap(res.Raw) < 800 {
-		res.Raw = make([]byte, 0, 1024)
-	}
-	res.Reset()
-	c.SetReadDeadline(time.Now().Add(time.Second * 2))
-	_, err := res.ReadFrom(c)
-	if err != nil {
-		logger.Error("failed to read",
-			zap.Error(err), zap.Stringer("m", req),
-		)
-	}
-	logger.Info("got message",
-		zap.Stringer("m", res),
-		zap.Stringer("t", res.Type),
-		zap.Duration("rtt", time.Since(start)),
-	)
-	return nil
-}
 
 func main() {
 	flag.Parse()
@@ -155,15 +118,14 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to create permission")
 	}
-
 	// Sending and receiving "hello" message.
-	sent := []byte("hello")
-	if _, err = p.Write([]byte("hello")); err != nil {
+	if _, err := fmt.Fprint(p, "hello"); err != nil {
 		logger.Fatal("failed to write data")
 	}
+	sent := []byte("hello")
 	got := make([]byte, len(sent))
 	if _, err = p.Read(got); err != nil {
-		logger.Fatal("failed to read data")
+		logger.Fatal("failed to read data", zap.Error(err))
 	}
 	if !bytes.Equal(got, sent) {
 		logger.Fatal("got incorrect data")
