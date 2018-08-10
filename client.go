@@ -413,6 +413,8 @@ func (p *Permission) Bind() error {
 	if res.Type != stun.NewType(stun.MethodChannelBind, stun.ClassSuccessResponse) {
 		return fmt.Errorf("unexpected response type %s", res.Type)
 	}
+	// Success.
+	p.number = n
 	return nil
 }
 
