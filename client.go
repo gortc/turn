@@ -190,14 +190,6 @@ func (c *Client) sendChan(buf []byte, n ChannelNumber) (int, error) {
 	return c.con.Write(d.Raw)
 }
 
-func (c *Client) bind(p *Permission, n ChannelNumber, f stun.Handler) error {
-	return c.stun.Do(stun.MustBuild(stun.TransactionID,
-		stun.NewType(stun.MethodChannelBind, stun.ClassRequest),
-		n, &p.peerAddr,
-		stun.Fingerprint,
-	), f)
-}
-
 // ErrNotImplemented means that functionality is not currently implemented,
 // but it will be (eventually).
 var ErrNotImplemented = errors.New("functionality not implemented")
