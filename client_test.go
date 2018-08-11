@@ -69,6 +69,51 @@ func TestClientMultiplexed(t *testing.T) {
 	if c == nil {
 		t.Fatal("client should not be nil")
 	}
+	gotRequest := make(chan struct{})
+	timeout := time.Millisecond * 100
+	go func() {
+		buf := make([]byte, 1500)
+		connL.SetReadDeadline(time.Now().Add(timeout / 2))
+		readN, readErr := connL.Read(buf)
+		t.Log("got write")
+		if readErr != nil {
+			t.Error("failed to read")
+		}
+		m := &stun.Message{
+			Raw: buf[:readN],
+		}
+		if decodeErr := m.Decode(); decodeErr != nil {
+			t.Error("failed to decode")
+		}
+		res := stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+			&RelayedAddress{
+				IP:   net.IPv4(127, 0, 0, 1),
+				Port: 1001,
+			},
+			&stun.XORMappedAddress{
+				IP:   net.IPv4(127, 0, 0, 2),
+				Port: 1002,
+			},
+			stun.Fingerprint,
+		)
+		res.Encode()
+		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
+		if _, writeErr := connL.Write(res.Raw); writeErr != nil {
+			t.Error("failed to write")
+		}
+		gotRequest <- struct{}{}
+	}()
+	connR.SetWriteDeadline(time.Now().Add(timeout))
+	_, allocErr := c.Allocate()
+	if allocErr != nil {
+		t.Fatal(allocErr)
+	}
+	select {
+	case <-gotRequest:
+		// success
+	case <-time.After(timeout):
+		t.Fatal("timed out")
+	}
 	connL.Close()
 	ensureNoErrors(t, logs)
 }
