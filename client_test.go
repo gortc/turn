@@ -214,6 +214,27 @@ func TestClientMultiplexed(t *testing.T) {
 	case <-time.After(timeout):
 		t.Fatal("timed out")
 	}
+	go func() {
+		d := &ChannelData{
+			Number: p.Binding(),
+			Data:   sent,
+			Raw:    make([]byte, 1500),
+		}
+		d.Encode()
+		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
+		_, writeErr := connL.Write(d.Raw)
+		if writeErr != nil {
+			t.Error("failed to write")
+		}
+	}()
+	buf := make([]byte, 1500)
+	n, readErr := p.Read(buf)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !bytes.Equal(buf[:n], sent) {
+		t.Error("data mismatch")
+	}
 	connL.Close()
 	ensureNoErrors(t, logs)
 }
