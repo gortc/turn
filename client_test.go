@@ -149,6 +149,33 @@ func TestClientMultiplexed(t *testing.T) {
 	if p.Bound() {
 		t.Error("should not be bound")
 	}
+	go func() {
+		buf := make([]byte, 1500)
+		connL.SetReadDeadline(time.Now().Add(timeout / 2))
+		readN, readErr := connL.Read(buf)
+		t.Log("got write")
+		if readErr != nil {
+			t.Error("failed to read")
+		}
+		m := &stun.Message{
+			Raw: buf[:readN],
+		}
+		if decodeErr := m.Decode(); decodeErr != nil {
+			t.Error("failed to decode")
+		}
+		res := stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+			stun.Fingerprint,
+		)
+		res.Encode()
+		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
+		if _, writeErr := connL.Write(res.Raw); writeErr != nil {
+			t.Error("failed to write")
+		}
+		gotRequest <- struct{}{}
+	}()
+	if bindErr := p.Bind(); bindErr != nil {
+		t.Fatalf("failed to bind: %v", bindErr)
+	}
 	connL.Close()
 	ensureNoErrors(t, logs)
 }
