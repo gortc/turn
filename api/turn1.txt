@@ -79,7 +79,6 @@ pkg github.com/gortc/turn, type ClientOptions struct
 pkg github.com/gortc/turn, type ClientOptions struct, Conn net.Conn
 pkg github.com/gortc/turn, type ClientOptions struct, Log *zap.Logger
 pkg github.com/gortc/turn, type ClientOptions struct, Password string
-pkg github.com/gortc/turn, type ClientOptions struct, Realm string
 pkg github.com/gortc/turn, type ClientOptions struct, STUN STUNClient
 pkg github.com/gortc/turn, type ClientOptions struct, Username string
 pkg github.com/gortc/turn, type Data []uint8

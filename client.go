@@ -48,7 +48,6 @@ type ClientOptions struct {
 	// Long-term integrity.
 	Username string
 	Password string
-	Realm    string
 }
 
 // NewClient creates and initializes new TURN client.
@@ -89,9 +88,6 @@ func NewClient(o ClientOptions) (*Client, error) {
 
 	if o.Username != "" {
 		c.username = stun.NewUsername(o.Username)
-	}
-	if o.Realm != "" {
-		c.realm = stun.NewRealm(o.Realm)
 	}
 	go c.readUntilClosed()
 	return c, nil
