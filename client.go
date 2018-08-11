@@ -310,13 +310,17 @@ func (c *Client) Allocate() (*Allocation, error) {
 }
 
 // CreateUDP creates new UDP Permission to peer.
-func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
+func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 	req := stun.New()
 	req.TransactionID = stun.NewTransactionID()
 	req.Type = stun.NewType(stun.MethodCreatePermission, stun.ClassRequest)
 	req.WriteHeader()
 	setters := make([]stun.Setter, 0, 10)
-	setters = append(setters, peer)
+	peer := PeerAddress{
+		IP:   addr.IP,
+		Port: addr.Port,
+	}
+	setters = append(setters, &peer)
 	if len(a.integrity) > 0 {
 		// Applying auth.
 		setters = append(setters,

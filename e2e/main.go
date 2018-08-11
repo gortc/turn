@@ -115,10 +115,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to create allocation", zap.Error(err))
 	}
-	p, err := a.CreateUDP(turn.PeerAddress{
-		IP:   echoAddr.IP,
-		Port: echoAddr.Port,
-	})
+	p, err := a.CreateUDP(echoAddr)
 	if err != nil {
 		logger.Fatal("failed to create permission")
 	}

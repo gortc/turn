@@ -114,7 +114,7 @@ func TestClientMultiplexed(t *testing.T) {
 	case <-time.After(timeout):
 		t.Fatal("timed out")
 	}
-	peer := PeerAddress{
+	peer := &net.UDPAddr{
 		IP:   net.IPv4(127, 0, 0, 3),
 		Port: 1003,
 	}
@@ -276,7 +276,7 @@ func TestClient_Allocate(t *testing.T) {
 		if allocErr != nil {
 			t.Fatal(allocErr)
 		}
-		peer := PeerAddress{
+		peer := &net.UDPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 1001,
 		}
@@ -344,7 +344,10 @@ func TestClient_Allocate(t *testing.T) {
 				if parseErr := m.Parse(&n, &bindPeer); parseErr != nil {
 					t.Error(parseErr)
 				}
-				if !Addr(bindPeer).Equal(Addr(peer)) {
+				if !Addr(bindPeer).Equal(Addr{
+					Port: peer.Port,
+					IP:   peer.IP,
+				}) {
 					t.Errorf("unexpected bind peer %s", bindPeer)
 				}
 				f(stun.Event{
@@ -491,7 +494,7 @@ func TestClient_Allocate(t *testing.T) {
 		if allocErr != nil {
 			t.Fatal(allocErr)
 		}
-		peer := PeerAddress{
+		peer := &net.UDPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 1001,
 		}
