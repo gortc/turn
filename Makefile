@@ -23,6 +23,7 @@ lint:
 	@echo "linting on $(PROCS) cores"
 	@gometalinter \
 		--enable-all \
+		--vendor \
 		-e "_test.go.+(gocyclo|errcheck|dupl)" \
 		-e "attributes\.go.+credentials,.+,LOW.+\(gas\)" \
 		-e "parameter v always receives 8" \
