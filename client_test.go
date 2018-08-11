@@ -70,7 +70,7 @@ func TestClientMultiplexed(t *testing.T) {
 		t.Fatal("client should not be nil")
 	}
 	gotRequest := make(chan struct{})
-	timeout := time.Millisecond * 100
+	timeout := time.Millisecond * 300
 	go func() {
 		buf := make([]byte, 1500)
 		connL.SetReadDeadline(time.Now().Add(timeout / 2))
