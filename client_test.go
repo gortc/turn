@@ -104,7 +104,7 @@ func TestClientMultiplexed(t *testing.T) {
 		gotRequest <- struct{}{}
 	}()
 	connR.SetWriteDeadline(time.Now().Add(timeout))
-	_, allocErr := c.Allocate()
+	a, allocErr := c.Allocate()
 	if allocErr != nil {
 		t.Fatal(allocErr)
 	}
@@ -113,6 +113,41 @@ func TestClientMultiplexed(t *testing.T) {
 		// success
 	case <-time.After(timeout):
 		t.Fatal("timed out")
+	}
+	peer := PeerAddress{
+		IP:   net.IPv4(127, 0, 0, 3),
+		Port: 1003,
+	}
+	go func() {
+		buf := make([]byte, 1500)
+		connL.SetReadDeadline(time.Now().Add(timeout / 2))
+		readN, readErr := connL.Read(buf)
+		t.Log("got write")
+		if readErr != nil {
+			t.Error("failed to read")
+		}
+		m := &stun.Message{
+			Raw: buf[:readN],
+		}
+		if decodeErr := m.Decode(); decodeErr != nil {
+			t.Error("failed to decode")
+		}
+		res := stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+			stun.Fingerprint,
+		)
+		res.Encode()
+		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
+		if _, writeErr := connL.Write(res.Raw); writeErr != nil {
+			t.Error("failed to write")
+		}
+		gotRequest <- struct{}{}
+	}()
+	p, permErr := a.CreateUDP(peer)
+	if permErr != nil {
+		t.Error(permErr)
+	}
+	if p.Bound() {
+		t.Error("should not be bound")
 	}
 	connL.Close()
 	ensureNoErrors(t, logs)
