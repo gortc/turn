@@ -1,15 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"net"
 	"time"
 
-	"bytes"
-	"github.com/gortc/turn"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/gortc/turn"
 )
 
 const (
