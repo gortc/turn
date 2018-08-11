@@ -146,6 +146,12 @@ func TestClientMultiplexed(t *testing.T) {
 	if permErr != nil {
 		t.Error(permErr)
 	}
+	select {
+	case <-gotRequest:
+		// success
+	case <-time.After(timeout):
+		t.Fatal("timed out")
+	}
 	if p.Bound() {
 		t.Error("should not be bound")
 	}
@@ -175,6 +181,38 @@ func TestClientMultiplexed(t *testing.T) {
 	}()
 	if bindErr := p.Bind(); bindErr != nil {
 		t.Fatalf("failed to bind: %v", bindErr)
+	}
+	select {
+	case <-gotRequest:
+		// success
+	case <-time.After(timeout):
+		t.Fatal("timed out")
+	}
+	go func() {
+		buf := make([]byte, 1500)
+		connL.SetReadDeadline(time.Now().Add(timeout / 2))
+		readN, readErr := connL.Read(buf)
+		t.Log("got write")
+		if readErr != nil {
+			t.Error("failed to read")
+		}
+		m := &ChannelData{
+			Raw: buf[:readN],
+		}
+		if decodeErr := m.Decode(); decodeErr != nil {
+			t.Error("failed to decode")
+		}
+		gotRequest <- struct{}{}
+	}()
+	sent := []byte{1, 2, 3, 4}
+	if _, writeErr := p.Write(sent); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	select {
+	case <-gotRequest:
+		// success
+	case <-time.After(timeout):
+		t.Fatal("timed out")
 	}
 	connL.Close()
 	ensureNoErrors(t, logs)
