@@ -30,6 +30,24 @@ func ensureNoErrors(t *testing.T, logs *observer.ObservedLogs) {
 	}
 }
 
+func TestClientMultiplexed(t *testing.T) {
+	core, logs := observer.New(zapcore.DebugLevel)
+	logger := zap.New(core)
+	connL, connR := net.Pipe()
+	c, createErr := NewClient(ClientOptions{
+		Log:  logger,
+		Conn: connR, // should not be used
+	})
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
+	if c == nil {
+		t.Fatal("client should not be nil")
+	}
+	connL.Close()
+	ensureNoErrors(t, logs)
+}
+
 func TestClient_Allocate(t *testing.T) {
 	t.Run("Anonymous", func(t *testing.T) {
 		core, logs := observer.New(zapcore.DebugLevel)
