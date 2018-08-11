@@ -30,6 +30,31 @@ func ensureNoErrors(t *testing.T, logs *observer.ObservedLogs) {
 	}
 }
 
+func TestNewClient(t *testing.T) {
+	t.Run("NoConn", func(t *testing.T) {
+		c, createErr := NewClient(ClientOptions{})
+		if createErr == nil {
+			t.Error("should error")
+		}
+		if c != nil {
+			t.Error("client should be nil")
+		}
+	})
+	t.Run("Simple", func(t *testing.T) {
+		connL, connR := net.Pipe()
+		c, createErr := NewClient(ClientOptions{
+			Conn: connR, // should not be used
+		})
+		if createErr != nil {
+			t.Fatal(createErr)
+		}
+		if c == nil {
+			t.Fatal("client should not be nil")
+		}
+		connL.Close()
+	})
+}
+
 func TestClientMultiplexed(t *testing.T) {
 	core, logs := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core)
