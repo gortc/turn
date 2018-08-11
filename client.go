@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gortc/stun"
 	"go.uber.org/zap"
+
+	"github.com/gortc/stun"
 )
 
 // Allocation reflects TURN Allocation.
