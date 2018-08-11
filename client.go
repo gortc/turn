@@ -309,7 +309,17 @@ func (c *Client) Allocate() (*Allocation, error) {
 	return c.allocate(req, res)
 }
 
-// CreateUDP creates new UDP Permission to peer.
+// Create creates new permission to peer
+func (a *Allocation) Create(peer net.Addr) (*Permission, error) {
+	switch addr := peer.(type) {
+	case *net.UDPAddr:
+		return a.CreateUDP(addr)
+	default:
+		return nil, fmt.Errorf("unsupported addr type %T", peer)
+	}
+}
+
+// CreateUDP creates new UDP Permission to peer with provided addr.
 func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 	req := stun.New()
 	req.TransactionID = stun.NewTransactionID()

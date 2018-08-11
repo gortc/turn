@@ -9,6 +9,7 @@ pkg github.com/gortc/turn, const ProtoUDP Protocol
 pkg github.com/gortc/turn, func IsChannelData([]uint8) bool
 pkg github.com/gortc/turn, func NewClient(ClientOptions) (*Client, error)
 pkg github.com/gortc/turn, method (*Addr) FromUDPAddr(*net.UDPAddr)
+pkg github.com/gortc/turn, method (*Allocation) Create(net.Addr) (*Permission, error)
 pkg github.com/gortc/turn, method (*Allocation) CreateUDP(*net.UDPAddr) (*Permission, error)
 pkg github.com/gortc/turn, method (*ChannelData) Decode() error
 pkg github.com/gortc/turn, method (*ChannelData) Encode()
@@ -57,7 +58,6 @@ pkg github.com/gortc/turn, method (Lifetime) Seconds() float64
 pkg github.com/gortc/turn, method (Lifetime) String() string
 pkg github.com/gortc/turn, method (Lifetime) Truncate(time.Duration) time.Duration
 pkg github.com/gortc/turn, method (PeerAddress) AddTo(*stun.Message) error
-pkg github.com/gortc/turn, method (PeerAddress) Network() string
 pkg github.com/gortc/turn, method (PeerAddress) String() string
 pkg github.com/gortc/turn, method (Protocol) String() string
 pkg github.com/gortc/turn, method (RelayedAddress) AddTo(*stun.Message) error
