@@ -43,7 +43,7 @@ func TestNewClient(t *testing.T) {
 	t.Run("Simple", func(t *testing.T) {
 		connL, connR := net.Pipe()
 		c, createErr := NewClient(ClientOptions{
-			Conn: connR, // should not be used
+			Conn: connR,
 		})
 		if createErr != nil {
 			t.Fatal(createErr)
