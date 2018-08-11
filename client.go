@@ -227,6 +227,7 @@ func (c *Client) do(req, res *stun.Message) error {
 	return stunErr
 }
 
+// allocate expects c.mux locked.
 func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 	if doErr := c.do(req, res); doErr != nil {
 		return nil, doErr
@@ -237,12 +238,14 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 			reflexive stun.XORMappedAddress
 			nonce     stun.Nonce
 		)
+		// Getting relayed and reflexive addresses from response.
 		if err := relayed.GetFrom(res); err != nil {
 			return nil, err
 		}
 		if err := reflexive.GetFrom(res); err != nil && err != stun.ErrAttributeNotFound {
 			return nil, err
 		}
+		// Getting nonce from request.
 		if err := nonce.GetFrom(req); err != nil && err != stun.ErrAttributeNotFound {
 			return nil, err
 		}
