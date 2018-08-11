@@ -115,7 +115,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to create allocation", zap.Error(err))
 	}
-	p, err := a.CreateUDP(echoAddr)
+	p, err := a.Create(echoAddr)
 	if err != nil {
 		logger.Fatal("failed to create permission")
 	}
