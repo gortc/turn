@@ -346,7 +346,6 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 type Permission struct {
 	log          *zap.Logger
 	mux          sync.RWMutex
-	binding      bool
 	number       ChannelNumber
 	peerAddr     PeerAddress
 	peerL, peerR net.Conn
