@@ -208,21 +208,28 @@ var ErrNotImplemented = errors.New("functionality not implemented")
 
 var errUnauthorised = errors.New("unauthorised")
 
-func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
+func (c *Client) do(req, res *stun.Message) error {
 	var stunErr error
 	if doErr := c.stun.Do(req, func(e stun.Event) {
 		if e.Error != nil {
 			stunErr = e.Error
 			return
 		}
+		if res == nil {
+			return
+		}
 		if err := e.Message.CloneTo(res); err != nil {
 			stunErr = err
 		}
 	}); doErr != nil {
-		return nil, doErr
+		return doErr
 	}
-	if stunErr != nil {
-		return nil, stunErr
+	return stunErr
+}
+
+func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
+	if doErr := c.do(req, res); doErr != nil {
+		return nil, doErr
 	}
 	if res.Type == stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse) {
 		var (
@@ -312,7 +319,6 @@ func (c *Client) Allocate() (*Allocation, error) {
 
 // CreateUDP creates new UDP Permission to peer.
 func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
-	var pErr error
 	req := stun.New()
 	req.TransactionID = stun.NewTransactionID()
 	req.Type = stun.NewType(stun.MethodCreatePermission, stun.ClassRequest)
@@ -331,13 +337,8 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 			return nil, setErr
 		}
 	}
-	if err := a.c.stun.Do(req, func(e stun.Event) {
-		e.Error = pErr
-	}); err != nil {
-		return nil, err
-	}
-	if pErr != nil {
-		return nil, pErr
+	if doErr := a.c.do(req, nil); doErr != nil {
+		return nil, doErr
 	}
 	p := &Permission{
 		log:      a.log.Named("permission"),
@@ -396,19 +397,14 @@ func (p *Permission) Bind() error {
 	n := p.c.a.minBound
 
 	// Starting transaction.
-	var transactionErr error
 	res := stun.New()
-	if err := p.c.bind(p, n, func(e stun.Event) {
-		if e.Error != nil {
-			transactionErr = e.Error
-			return
-		}
-		transactionErr = e.Message.CloneTo(res)
-	}); err != nil {
-		return err
-	}
-	if transactionErr != nil {
-		return transactionErr
+	req := stun.MustBuild(stun.TransactionID,
+		stun.NewType(stun.MethodChannelBind, stun.ClassRequest),
+		n, &p.peerAddr,
+		stun.Fingerprint,
+	)
+	if doErr := p.c.do(req, res); doErr != nil {
+		return doErr
 	}
 	if res.Type != stun.NewType(stun.MethodChannelBind, stun.ClassSuccessResponse) {
 		return fmt.Errorf("unexpected response type %s", res.Type)
