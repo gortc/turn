@@ -15,10 +15,10 @@ import (
 // Allocation reflects TURN Allocation.
 type Allocation struct {
 	log       *zap.Logger
-	c         *Client
+	client    *Client
 	relayed   RelayedAddress
 	reflexive stun.XORMappedAddress
-	p         []*Permission
+	perms     []*Permission
 	minBound  ChannelNumber
 	integrity stun.MessageIntegrity
 	nonce     stun.Nonce
@@ -36,7 +36,7 @@ type Client struct {
 	password  string
 	realm     stun.Realm
 	integrity stun.MessageIntegrity
-	a         *Allocation // the only allocation
+	alloc     *Allocation // the only allocation
 }
 
 // ClientOptions contains available config for TURN  client.
@@ -116,11 +116,11 @@ func (c *Client) stunHandler(e stun.Event) {
 		return
 	}
 	c.mux.Lock()
-	for i := range c.a.p {
-		if !Addr(c.a.p[i].peerAddr).Equal(Addr(addr)) {
+	for i := range c.alloc.perms {
+		if !Addr(c.alloc.perms[i].peerAddr).Equal(Addr(addr)) {
 			continue
 		}
-		if _, err := c.a.p[i].peerL.Write(data); err != nil {
+		if _, err := c.alloc.perms[i].peerL.Write(data); err != nil {
 			c.log.Error("failed to write", zap.Error(err))
 		}
 	}
@@ -130,11 +130,11 @@ func (c *Client) stunHandler(e stun.Event) {
 func (c *Client) handleChannelData(data *ChannelData) {
 	c.log.Debug("handleChannelData", zap.Uint32("n", uint32(data.Number)))
 	c.mux.Lock()
-	for i := range c.a.p {
-		if data.Number != c.a.p[i].Binding() {
+	for i := range c.alloc.perms {
+		if data.Number != c.alloc.perms[i].Binding() {
 			continue
 		}
-		if _, err := c.a.p[i].peerL.Write(data.Data); err != nil {
+		if _, err := c.alloc.perms[i].peerL.Write(data.Data); err != nil {
 			c.log.Error("failed to write", zap.Error(err))
 		}
 	}
@@ -223,7 +223,7 @@ func (c *Client) do(req, res *stun.Message) error {
 	return stunErr
 }
 
-// allocate expects c.mux locked.
+// allocate expects client.mux locked.
 func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 	if doErr := c.do(req, res); doErr != nil {
 		return nil, doErr
@@ -246,7 +246,7 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 			return nil, err
 		}
 		a := &Allocation{
-			c:         c,
+			client:    c,
 			log:       c.log.Named("allocation"),
 			reflexive: reflexive,
 			relayed:   relayed,
@@ -254,7 +254,7 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 			integrity: c.integrity,
 			nonce:     nonce,
 		}
-		c.a = a
+		c.alloc = a
 		return a, nil
 	}
 	// Anonymous allocate failed, trying to authenticate.
@@ -327,7 +327,7 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 	if len(a.integrity) > 0 {
 		// Applying auth.
 		setters = append(setters,
-			a.nonce, a.c.username, a.integrity,
+			a.nonce, a.client.username, a.integrity,
 		)
 	}
 	setters = append(setters, stun.Fingerprint)
@@ -336,16 +336,16 @@ func (a *Allocation) CreateUDP(peer PeerAddress) (*Permission, error) {
 			return nil, setErr
 		}
 	}
-	if doErr := a.c.do(req, nil); doErr != nil {
+	if doErr := a.client.do(req, nil); doErr != nil {
 		return nil, doErr
 	}
 	p := &Permission{
 		log:      a.log.Named("permission"),
 		peerAddr: peer,
-		c:        a.c,
+		client:   a.client,
 	}
 	p.peerL, p.peerR = net.Pipe()
-	a.p = append(a.p, p)
+	a.perms = append(a.perms, p)
 	return p, nil
 }
 
@@ -357,7 +357,7 @@ type Permission struct {
 	number       ChannelNumber
 	peerAddr     PeerAddress
 	peerL, peerR net.Conn
-	c            *Client
+	client       *Client
 }
 
 // Read data from peer.
@@ -392,8 +392,8 @@ func (p *Permission) Bind() error {
 	if p.number != 0 {
 		return ErrAlreadyBound
 	}
-	p.c.a.minBound++
-	n := p.c.a.minBound
+	p.client.alloc.minBound++
+	n := p.client.alloc.minBound
 
 	// Starting transaction.
 	res := stun.New()
@@ -402,7 +402,7 @@ func (p *Permission) Bind() error {
 		n, &p.peerAddr,
 		stun.Fingerprint,
 	)
-	if doErr := p.c.do(req, res); doErr != nil {
+	if doErr := p.client.do(req, res); doErr != nil {
 		return doErr
 	}
 	if res.Type != stun.NewType(stun.MethodChannelBind, stun.ClassSuccessResponse) {
@@ -421,12 +421,12 @@ func (p *Permission) Write(b []byte) (n int, err error) {
 		if ce := p.log.Check(zap.DebugLevel, "using channel data to write"); ce != nil {
 			ce.Write()
 		}
-		return p.c.sendChan(b, n)
+		return p.client.sendChan(b, n)
 	}
 	if ce := p.log.Check(zap.DebugLevel, "using STUN to write"); ce != nil {
 		ce.Write()
 	}
-	return p.c.sendData(b, &p.peerAddr)
+	return p.client.sendData(b, &p.peerAddr)
 }
 
 // Close implements net.Conn.
@@ -436,7 +436,7 @@ func (p *Permission) Close() error {
 
 // LocalAddr is relayed address from TURN server.
 func (p *Permission) LocalAddr() net.Addr {
-	return Addr(p.c.a.relayed)
+	return Addr(p.client.alloc.relayed)
 }
 
 // RemoteAddr is peer address.
