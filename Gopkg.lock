@@ -2,7 +2,6 @@
 
 
 [[projects]]
-  branch = "dev"
   digest = "1:c0199497647c8eeaca425aaba534044a5b79cd0cf74c80a307ce48f4c4639897"
   name = "github.com/gortc/stun"
   packages = [
@@ -11,6 +10,7 @@
   ]
   pruneopts = "UT"
   revision = "13bf36b4b62817f6886e9c46ae635114a2a13620"
+  version = "v1.14.3"
 
 [[projects]]
   digest = "1:3c1a69cdae3501bf75e76d0d86dc6f2b0a7421bc205c0cb7b96b19eed464a34d"
