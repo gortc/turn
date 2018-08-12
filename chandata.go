@@ -10,10 +10,11 @@ import (
 //
 // See RFC 5766 Section 11.4
 type ChannelData struct {
-	Data   []byte // can be subslice of Raw
-	Length int    // ignored while encoding, len(Data) is used
-	Number ChannelNumber
-	Raw    []byte
+	Data    []byte // can be subslice of Raw
+	Length  int    // ignored while encoding, len(Data) is used
+	Padding bool   // use  padding
+	Number  ChannelNumber
+	Raw     []byte
 }
 
 // Equal returns true if b == c.
@@ -57,6 +58,31 @@ func (c *ChannelData) Encode() {
 	c.Raw = c.Raw[:0]
 	c.WriteHeader()
 	c.Raw = append(c.Raw, c.Data...)
+	if !c.Padding {
+		return
+	}
+	padded := nearestPaddedValueLength(len(c.Raw))
+	if bytesToAdd := padded - len(c.Raw); bytesToAdd > 0 {
+		for i := 0; i < bytesToAdd; i++ {
+			c.Raw = append(c.Raw, 0)
+		}
+	}
+}
+
+// STUN aligns attributes on 32-bit boundaries, attributes whose content
+// is not a multiple of 4 bytes are padded with 1, 2, or 3 bytes of
+// padding so that its value contains a multiple of 4 bytes.  The
+// padding bits are ignored, and may be any value.
+//
+// https://tools.ietf.org/html/rfc5389#section-15
+const padding = 4
+
+func nearestPaddedValueLength(l int) int {
+	n := padding * (l / padding)
+	if n < l {
+		n += padding
+	}
+	return n
 }
 
 // WriteHeader writes channel number and length.
@@ -89,11 +115,14 @@ func (c *ChannelData) Decode() error {
 	l := bin.Uint16(buf[channelNumberSize:channelDataHeaderSize])
 	c.Data = buf[channelDataHeaderSize:]
 	c.Length = int(l)
-	if int(l) != len(buf[channelDataHeaderSize:]) {
-		return ErrBadChannelDataLength
-	}
 	if !c.Number.Valid() {
 		return ErrInvalidChannelNumber
+	}
+	if int(l) < len(c.Data) {
+		c.Data = c.Data[:int(l)]
+	}
+	if int(l) > len(buf[channelDataHeaderSize:]) {
+		return ErrBadChannelDataLength
 	}
 	return nil
 }

@@ -110,12 +110,17 @@ func TestChannelData_Decode(t *testing.T) {
 		{
 			name: "zeroes",
 			buf:  []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			err:  ErrBadChannelDataLength,
+			err:  ErrInvalidChannelNumber,
 		},
 		{
 			name: "bad chan number",
 			buf:  []byte{63, 255, 0, 0, 0, 4, 0, 0, 1, 2, 3, 4},
 			err:  ErrInvalidChannelNumber,
+		},
+		{
+			name: "bad length",
+			buf:  []byte{0x40, 0x40, 0x02, 0x23, 0x16, 0, 0, 0, 0, 0, 0, 0},
+			err:  ErrBadChannelDataLength,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -211,5 +216,24 @@ func BenchmarkChannelData_Decode(b *testing.B) {
 		if err := d.Decode(); err != nil {
 			b.Error(err)
 		}
+	}
+}
+
+func TestChannelData_Padding(t *testing.T) {
+	c := &ChannelData{
+		Data:    []byte{1},
+		Padding: true,
+		Number:  minChannelNumber + 1,
+	}
+	c.Encode()
+	n := &ChannelData{
+		Raw: make([]byte, len(c.Raw)),
+	}
+	copy(n.Raw, c.Raw)
+	if err := n.Decode(); err != nil {
+		t.Error(err)
+	}
+	if !n.Equal(c) {
+		t.Error("should be equal")
 	}
 }

@@ -73,6 +73,7 @@ pkg github.com/gortc/turn, type ChannelData struct
 pkg github.com/gortc/turn, type ChannelData struct, Data []uint8
 pkg github.com/gortc/turn, type ChannelData struct, Length int
 pkg github.com/gortc/turn, type ChannelData struct, Number ChannelNumber
+pkg github.com/gortc/turn, type ChannelData struct, Padding bool
 pkg github.com/gortc/turn, type ChannelData struct, Raw []uint8
 pkg github.com/gortc/turn, type ChannelNumber int
 pkg github.com/gortc/turn, type Client struct
