@@ -2,8 +2,10 @@ package turn
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"io"
+	"log"
 )
 
 // ChannelData represents The ChannelData Message.
@@ -87,15 +89,15 @@ func nearestPaddedValueLength(l int) int {
 
 // WriteHeader writes channel number and length.
 func (c *ChannelData) WriteHeader() {
-	if len(c.Raw) < channelDataHeaderSize {
+	if len(c.Raw) < 4 {
 		// Making WriteHeader call valid even when c.Raw
 		// is nil or len(c.Raw) is less than needed for header.
-		c.grow(channelDataHeaderSize)
+		c.grow(4)
 	}
 	// Early bounds check to guarantee safety of writes below.
 	_ = c.Raw[:channelDataHeaderSize]
-	bin.PutUint16(c.Raw[:channelNumberSize], uint16(c.Number))
-	bin.PutUint16(c.Raw[channelNumberSize:channelDataHeaderSize],
+	bin.PutUint16(c.Raw[:2], uint16(c.Number))
+	bin.PutUint16(c.Raw[2:4],
 		uint16(len(c.Data)),
 	)
 }
@@ -107,12 +109,13 @@ var ErrBadChannelDataLength = errors.New("channelData length != len(Data)")
 // Decode decodes The ChannelData Message from Raw.
 func (c *ChannelData) Decode() error {
 	buf := c.Raw
+	log.Println(hex.Dump(c.Raw))
 	if len(buf) < channelDataHeaderSize {
 		return io.ErrUnexpectedEOF
 	}
-	num := bin.Uint16(buf[0:channelNumberSize])
+	num := bin.Uint16(buf[0:channelDataNumberSize])
 	c.Number = ChannelNumber(num)
-	l := bin.Uint16(buf[channelNumberSize:channelDataHeaderSize])
+	l := bin.Uint16(buf[channelDataNumberSize:channelDataHeaderSize])
 	c.Data = buf[channelDataHeaderSize:]
 	c.Length = int(l)
 	if !c.Number.Valid() {
@@ -128,8 +131,9 @@ func (c *ChannelData) Decode() error {
 }
 
 const (
-	channelDataLengthSize = channelNumberSize
-	channelDataHeaderSize = channelNumberSize + channelDataLengthSize
+	channelDataLengthSize = 2
+	channelDataNumberSize = channelDataLengthSize
+	channelDataHeaderSize = channelDataLengthSize + channelDataNumberSize
 )
 
 // IsChannelData returns true if buf looks like the ChannelData Message.

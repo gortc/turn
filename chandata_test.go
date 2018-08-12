@@ -1,6 +1,9 @@
 package turn
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/hex"
 	"io"
 	"testing"
 )
@@ -235,5 +238,38 @@ func TestChannelData_Padding(t *testing.T) {
 	}
 	if !n.Equal(c) {
 		t.Error("should be equal")
+	}
+}
+
+func TestChromeChannelData(t *testing.T) {
+	var (
+		r = bytes.NewReader(loadData(t, "02_chandata.hex"))
+		s = bufio.NewScanner(r)
+
+		data     [][]byte
+		messages []*ChannelData
+	)
+	// Decoding hex data into binary.
+	for s.Scan() {
+		b, err := hex.DecodeString(s.Text())
+		if err != nil {
+			t.Fatal(err)
+		}
+		data = append(data, b)
+	}
+	// All hex streams decoded to raw binary format and stored in data slice.
+	// Decoding packets to messages.
+	for i, packet := range data {
+		var (
+			m = new(ChannelData)
+		)
+		m.Raw = packet
+		if err := m.Decode(); err != nil {
+			t.Errorf("Packet %d: %v", i, err)
+		}
+		messages = append(messages, m)
+	}
+	if len(messages) != 2 {
+		t.Error("unexpected message slice list")
 	}
 }
