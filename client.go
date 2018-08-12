@@ -128,8 +128,13 @@ func (c *Client) stunHandler(e stun.Event) {
 	c.mux.Unlock()
 }
 
+// ZapChannelNumber returns zap.Field for ChannelNumber.
+func ZapChannelNumber(key string, v ChannelNumber) zap.Field {
+	return zap.String(key, fmt.Sprintf("0x%x", int(v)))
+}
+
 func (c *Client) handleChannelData(data *ChannelData) {
-	c.log.Debug("handleChannelData", zap.Uint32("n", uint32(data.Number)))
+	c.log.Debug("handleChannelData", ZapChannelNumber("number", data.Number))
 	c.mux.Lock()
 	for i := range c.alloc.perms {
 		if data.Number != c.alloc.perms[i].Binding() {
