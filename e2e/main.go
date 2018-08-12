@@ -141,6 +141,9 @@ func main() {
 	if !p.Bound() {
 		logger.Fatal("should be bound")
 	}
+	logger.Info("bound to channel", zap.String(
+		"number", fmt.Sprintf("0x%x", p.Binding()),
+	))
 	// Sending and receiving "hello" message.
 	if _, err := fmt.Fprint(p, "hello"); err != nil {
 		logger.Fatal("failed to write data")
