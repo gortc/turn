@@ -131,5 +131,25 @@ func main() {
 	if !bytes.Equal(got, sent) {
 		logger.Fatal("got incorrect data")
 	}
+	// Repeating via channel binding.
+	for i := range got {
+		got[i] = 0
+	}
+	if bindErr := p.Bind(); bindErr != nil {
+		logger.Fatal("failed to bind", zap.Error(err))
+	}
+	if !p.Bound() {
+		logger.Fatal("should be bound")
+	}
+	// Sending and receiving "hello" message.
+	if _, err := fmt.Fprint(p, "hello"); err != nil {
+		logger.Fatal("failed to write data")
+	}
+	if _, err = p.Read(got); err != nil {
+		logger.Fatal("failed to read data", zap.Error(err))
+	}
+	if !bytes.Equal(got, sent) {
+		logger.Fatal("got incorrect data")
+	}
 	logger.Info("closing")
 }
