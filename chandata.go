@@ -2,10 +2,8 @@ package turn
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"io"
-	"log"
 )
 
 // ChannelData represents The ChannelData Message.
@@ -109,7 +107,6 @@ var ErrBadChannelDataLength = errors.New("channelData length != len(Data)")
 // Decode decodes The ChannelData Message from Raw.
 func (c *ChannelData) Decode() error {
 	buf := c.Raw
-	log.Println(hex.Dump(c.Raw))
 	if len(buf) < channelDataHeaderSize {
 		return io.ErrUnexpectedEOF
 	}
