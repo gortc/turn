@@ -263,6 +263,20 @@ func TestChromeChannelData(t *testing.T) {
 		if err := m.Decode(); err != nil {
 			t.Errorf("Packet %d: %v", i, err)
 		}
+		encoded := &ChannelData{
+			Data:   m.Data,
+			Number: m.Number,
+		}
+		encoded.Encode()
+		decoded := new(ChannelData)
+		decoded.Raw = encoded.Raw
+		if err := decoded.Decode(); err != nil {
+			t.Error(err)
+		}
+		if !decoded.Equal(m) {
+			t.Error("should be equal")
+		}
+
 		messages = append(messages, m)
 	}
 	if len(messages) != 2 {
