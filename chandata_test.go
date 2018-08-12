@@ -107,7 +107,7 @@ func TestChannelData_Decode(t *testing.T) {
 		},
 		{
 			name: "small",
-			buf:  []byte{1, 2, 3, 4},
+			buf:  []byte{1, 2, 3},
 			err:  io.ErrUnexpectedEOF,
 		},
 		{
@@ -168,10 +168,6 @@ func TestIsChannelData(t *testing.T) {
 		{
 			name: "zeroes",
 			buf:  []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		},
-		{
-			name: "bad length",
-			buf:  []byte{64, 0, 0, 0, 0, 4, 0, 0, 1, 2, 3},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
