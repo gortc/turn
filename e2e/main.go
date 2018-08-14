@@ -105,8 +105,10 @@ func main() {
 		zap.Stringer("peer", echoAddr),
 	)
 	client, err := turn.NewClient(turn.ClientOptions{
-		Log:  logger.Named("client"),
-		Conn: c,
+		Log:      logger.Named("client"),
+		Conn:     c,
+		Username: "user",
+		Password: "secret",
 	})
 	if err != nil {
 		logger.Fatal("failed to create client", zap.Error(err))
@@ -117,7 +119,7 @@ func main() {
 	}
 	p, err := a.Create(echoAddr)
 	if err != nil {
-		logger.Fatal("failed to create permission")
+		logger.Fatal("failed to create permission", zap.Error(err))
 	}
 	// Sending and receiving "hello" message.
 	if _, err := fmt.Fprint(p, "hello"); err != nil {
