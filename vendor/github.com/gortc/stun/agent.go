@@ -6,16 +6,18 @@ import (
 	"time"
 )
 
-// AgentOptions are required to initialize Agent.
-type AgentOptions struct {
-	Handler Handler // Handler for transaction state changes.
-}
+// NoopHandler just discards any event.
+var NoopHandler Handler = func(e Event) {}
 
-// NewAgent initializes and returns new Agent from options.
-func NewAgent(o AgentOptions) *Agent {
+// NewAgent initializes and returns new Agent with provided handler.
+// If h is nil, the NoopHandler will be used.
+func NewAgent(h Handler) *Agent {
+	if h == nil {
+		h = NoopHandler
+	}
 	a := &Agent{
 		transactions: make(map[transactionID]agentTransaction),
-		handler:      o.Handler,
+		handler:      h,
 	}
 	return a
 }
@@ -42,8 +44,8 @@ type Agent struct {
 // copy needed fields explicitly.
 type Handler func(e Event)
 
-// Event is set of arguments passed to AgentFn, describing
-// an transaction event. Do not reuse outside AgentFn.
+// Event is passed to Handler describing the transaction event.
+// Do not reuse outside Handler.
 type Event struct {
 	TransactionID [TransactionIDSize]byte
 	Message       *Message
@@ -51,8 +53,6 @@ type Event struct {
 }
 
 // agentTransaction represents transaction in progress.
-// If transaction is succeed or failed, f will be called
-// provided by event.
 // Concurrent access is invalid.
 type agentTransaction struct {
 	id       transactionID
@@ -69,8 +69,8 @@ var (
 	ErrTransactionExists = errors.New("transaction exists with same id")
 )
 
-// StopWithError removes transaction from list and calls transaction callback
-// with provided error. Can return ErrTransactionNotExists and ErrAgentClosed.
+// StopWithError removes transaction from list and calls handler with
+// provided error. Can return ErrTransactionNotExists and ErrAgentClosed.
 func (a *Agent) StopWithError(id [TransactionIDSize]byte, err error) error {
 	a.mux.Lock()
 	if a.closed {
@@ -79,11 +79,12 @@ func (a *Agent) StopWithError(id [TransactionIDSize]byte, err error) error {
 	}
 	t, exists := a.transactions[id]
 	delete(a.transactions, id)
+	h := a.handler
 	a.mux.Unlock()
 	if !exists {
 		return ErrTransactionNotExists
 	}
-	a.handler(Event{
+	h(Event{
 		TransactionID: t.id,
 		Error:         err,
 	})
@@ -91,7 +92,7 @@ func (a *Agent) StopWithError(id [TransactionIDSize]byte, err error) error {
 }
 
 // Stop stops transaction by id with ErrTransactionStopped, blocking
-// until callback returns.
+// until handler returns.
 func (a *Agent) Stop(id [TransactionIDSize]byte) error {
 	return a.StopWithError(id, ErrTransactionStopped)
 }
@@ -100,10 +101,10 @@ func (a *Agent) Stop(id [TransactionIDSize]byte) error {
 // to handle transactions.
 var ErrAgentClosed = errors.New("agent is closed")
 
-// Start registers transaction with provided id, deadline and callback.
+// Start registers transaction with provided id and deadline.
 // Could return ErrAgentClosed, ErrTransactionExists.
-// Callback f is guaranteed to be eventually called. See AgentFn for
-// callback processing constraints.
+//
+// Agent handler is guaranteed to be eventually called.
 func (a *Agent) Start(id [TransactionIDSize]byte, deadline time.Time) error {
 	a.mux.Lock()
 	defer a.mux.Unlock()
@@ -156,25 +157,23 @@ func (a *Agent) Collect(gcTime time.Time) error {
 	for _, id := range toRemove {
 		delete(a.transactions, id)
 	}
-	// Calling callbacks does not require locked mutex,
+	// Calling handler does not require locked mutex,
 	// reducing lock time.
+	h := a.handler
 	a.mux.Unlock()
-	// Sending ErrTransactionTimeOut to all callbacks, blocking
-	// Collect until last one.
+	// Sending ErrTransactionTimeOut to handler for all transactions,
+	// blocking until last one.
 	event := Event{
 		Error: ErrTransactionTimeOut,
 	}
 	for _, id := range toRemove {
 		event.TransactionID = id
-		a.handler(event)
+		h(event)
 	}
 	return nil
 }
 
-// Process incoming message, picking handler by transaction id.
-// If transaction is not registered, zero handler is used. If default
-// handle is not provided, message is silently ignored.
-// Call blocks until handler returns.
+// Process incoming message, synchronously passing it to handler.
 func (a *Agent) Process(m *Message) error {
 	e := Event{
 		TransactionID: m.TransactionID,

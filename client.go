@@ -73,13 +73,10 @@ func NewClient(o ClientOptions) (*Client, error) {
 		}
 		// Starting STUN client on multiplexed connection.
 		var err error
-		o.STUN, err = stun.NewClient(stun.ClientOptions{
-			Handler: c.stunHandler,
-			Connection: bypassWriter{
-				reader: m.stunL,
-				writer: m.conn,
-			},
-		})
+		o.STUN, err = stun.NewClient(bypassWriter{
+			reader: m.stunL,
+			writer: m.conn,
+		}, stun.WithHandler(c.stunHandler))
 		if err != nil {
 			return nil, err
 		}
