@@ -339,7 +339,7 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 	if len(a.integrity) > 0 {
 		// Applying auth.
 		setters = append(setters,
-			a.nonce, a.client.username, a.integrity,
+			a.nonce, a.client.username, a.client.realm, a.integrity,
 		)
 	}
 	setters = append(setters, stun.Fingerprint)
@@ -348,8 +348,19 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 			return nil, setErr
 		}
 	}
-	if doErr := a.client.do(req, nil); doErr != nil {
+	res := stun.New()
+	if doErr := a.client.do(req, res); doErr != nil {
 		return nil, doErr
+	}
+	if res.Type.Class == stun.ClassErrorResponse {
+		var code stun.ErrorCodeAttribute
+		err := fmt.Errorf("unexpected error response: %s", res.Type)
+		if getErr := code.GetFrom(res); getErr == nil {
+			err = fmt.Errorf("unexpected error response: %s (error %s)",
+				res.Type, code,
+			)
+		}
+		return nil, err
 	}
 	p := &Permission{
 		log:      a.log.Named("permission"),
@@ -403,16 +414,30 @@ func (p *Permission) Bind() error {
 	if p.number != 0 {
 		return ErrAlreadyBound
 	}
-	p.client.alloc.minBound++
-	n := p.client.alloc.minBound
+	a := p.client.alloc
+	a.minBound++
+	n := a.minBound
 
 	// Starting transaction.
 	res := stun.New()
-	req := stun.MustBuild(stun.TransactionID,
-		stun.NewType(stun.MethodChannelBind, stun.ClassRequest),
-		n, &p.peerAddr,
-		stun.Fingerprint,
-	)
+	req := stun.New()
+	req.TransactionID = stun.NewTransactionID()
+	req.Type = stun.NewType(stun.MethodChannelBind, stun.ClassRequest)
+	req.WriteHeader()
+	setters := make([]stun.Setter, 0, 10)
+	setters = append(setters, &p.peerAddr, n)
+	if len(a.integrity) > 0 {
+		// Applying auth.
+		setters = append(setters,
+			a.nonce, a.client.username, a.client.realm, a.integrity,
+		)
+	}
+	setters = append(setters, stun.Fingerprint)
+	for _, s := range setters {
+		if setErr := s.AddTo(req); setErr != nil {
+			return setErr
+		}
+	}
 	if doErr := p.client.do(req, res); doErr != nil {
 		return doErr
 	}
