@@ -56,6 +56,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClientMultiplexed(t *testing.T) {
+	t.Skip("TODO(ar): Fix flaky test")
 	core, logs := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core)
 	connL, connR := net.Pipe()
