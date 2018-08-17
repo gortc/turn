@@ -56,7 +56,6 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClientMultiplexed(t *testing.T) {
-	t.Skip("TODO(ar): Fix flaky test")
 	core, logs := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core)
 	connL, connR := net.Pipe()
@@ -71,7 +70,7 @@ func TestClientMultiplexed(t *testing.T) {
 		t.Fatal("client should not be nil")
 	}
 	gotRequest := make(chan struct{})
-	timeout := time.Millisecond * 300
+	timeout := time.Second * 10
 	go func() {
 		buf := make([]byte, 1500)
 		connL.SetReadDeadline(time.Now().Add(timeout / 2))
