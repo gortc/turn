@@ -65,6 +65,7 @@ func (c *verboseConn) Read(b []byte) (n int, err error) {
 	c.t.Helper()
 	c.t.Logf("%s: read start", c.name)
 	defer func() {
+		c.t.Helper()
 		c.t.Logf("%s: read: (%d, %v)", c.name, n, err)
 	}()
 	return c.conn.Read(b)
@@ -74,6 +75,7 @@ func (c *verboseConn) Write(b []byte) (n int, err error) {
 	c.t.Helper()
 	c.t.Logf("%s: write start", c.name)
 	defer func() {
+		c.t.Helper()
 		c.t.Logf("%s: write: (%d, %v)", c.name, n, err)
 	}()
 	return c.conn.Write(b)
