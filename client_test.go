@@ -61,7 +61,7 @@ func TestClientMultiplexed(t *testing.T) {
 	connL, connR := net.Pipe()
 	c, createErr := NewClient(ClientOptions{
 		Log:  logger,
-		Conn: connR, // should not be used
+		Conn: connR,
 	})
 	if createErr != nil {
 		t.Fatal(createErr)
