@@ -122,7 +122,6 @@ func TestClientMultiplexed(t *testing.T) {
 		buf := make([]byte, 1500)
 		connL.SetReadDeadline(time.Now().Add(timeout / 2))
 		readN, readErr := connL.Read(buf)
-		t.Log("got write")
 		if readErr != nil {
 			t.Error("failed to read")
 		}
@@ -132,16 +131,19 @@ func TestClientMultiplexed(t *testing.T) {
 		if decodeErr := m.Decode(); decodeErr != nil {
 			t.Error("failed to decode")
 		}
+		t.Logf("read request: %s", m)
 		res := stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
 			stun.Fingerprint,
 		)
-		res.Encode()
 		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
+		t.Logf("writing response: %s", res)
 		if _, writeErr := connL.Write(res.Raw); writeErr != nil {
 			t.Error("failed to write")
 		}
+		t.Logf("wrote %s", res)
 		gotRequest <- struct{}{}
 	}()
+	t.Log("creating udp permission")
 	p, permErr := a.CreateUDP(peer)
 	if permErr != nil {
 		t.Fatal(permErr)
