@@ -142,9 +142,9 @@ func TestClientMultiplexed(t *testing.T) {
 	}
 	gotRequest := make(chan struct{})
 	timeout := time.Second * 10
+	connL.SetDeadline(time.Now().Add(timeout))
 	go func() {
 		buf := make([]byte, 1500)
-		connL.SetReadDeadline(time.Now().Add(timeout / 2))
 		readN, readErr := connL.Read(buf)
 		t.Log("got write")
 		if readErr != nil {
@@ -168,13 +168,11 @@ func TestClientMultiplexed(t *testing.T) {
 			stun.Fingerprint,
 		)
 		res.Encode()
-		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
 		if _, writeErr := connL.Write(res.Raw); writeErr != nil {
 			t.Error("failed to write")
 		}
 		gotRequest <- struct{}{}
 	}()
-	connR.SetWriteDeadline(time.Now().Add(timeout))
 	a, allocErr := c.Allocate()
 	if allocErr != nil {
 		t.Fatal(allocErr)
@@ -191,7 +189,6 @@ func TestClientMultiplexed(t *testing.T) {
 	}
 	go func() {
 		buf := make([]byte, 1500)
-		connL.SetReadDeadline(time.Now().Add(timeout / 2))
 		readN, readErr := connL.Read(buf)
 		if readErr != nil {
 			t.Error("failed to read")
@@ -206,7 +203,6 @@ func TestClientMultiplexed(t *testing.T) {
 		res := stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
 			stun.Fingerprint,
 		)
-		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
 		t.Logf("writing response: %s", res)
 		if _, writeErr := connL.Write(res.Raw); writeErr != nil {
 			t.Error("failed to write")
@@ -215,7 +211,6 @@ func TestClientMultiplexed(t *testing.T) {
 		gotRequest <- struct{}{}
 	}()
 	t.Log("creating udp permission")
-	connR.SetWriteDeadline(time.Now().Add(timeout))
 	p, permErr := a.CreateUDP(peer)
 	if permErr != nil {
 		t.Fatal(permErr)
@@ -231,7 +226,6 @@ func TestClientMultiplexed(t *testing.T) {
 	}
 	go func() {
 		buf := make([]byte, 1500)
-		connL.SetReadDeadline(time.Now().Add(timeout / 2))
 		readN, readErr := connL.Read(buf)
 		t.Log("got write")
 		if readErr != nil {
@@ -253,7 +247,7 @@ func TestClientMultiplexed(t *testing.T) {
 		}
 		gotRequest <- struct{}{}
 	}()
-	connR.SetWriteDeadline(time.Now().Add(timeout))
+	t.Log("starting binding")
 	if bindErr := p.Bind(); bindErr != nil {
 		t.Fatalf("failed to bind: %v", bindErr)
 	}
@@ -265,7 +259,6 @@ func TestClientMultiplexed(t *testing.T) {
 	}
 	go func() {
 		buf := make([]byte, 1500)
-		connL.SetReadDeadline(time.Now().Add(timeout / 2))
 		readN, readErr := connL.Read(buf)
 		t.Log("got write")
 		if readErr != nil {
@@ -280,7 +273,6 @@ func TestClientMultiplexed(t *testing.T) {
 		gotRequest <- struct{}{}
 	}()
 	sent := []byte{1, 2, 3, 4}
-	connR.SetWriteDeadline(time.Now().Add(timeout))
 	if _, writeErr := p.Write(sent); writeErr != nil {
 		t.Fatal(writeErr)
 	}
@@ -297,7 +289,6 @@ func TestClientMultiplexed(t *testing.T) {
 			Raw:    make([]byte, 1500),
 		}
 		d.Encode()
-		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
 		_, writeErr := connL.Write(d.Raw)
 		if writeErr != nil {
 			t.Error("failed to write")
