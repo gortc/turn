@@ -371,7 +371,7 @@ func TestClient_Allocate(t *testing.T) {
 			}
 			sent := []byte{1, 2, 3, 4}
 			gotWrite := make(chan struct{})
-			timeout := time.Millisecond * 100
+			timeout := time.Second * 5
 			go func() {
 				buf := make([]byte, 1500)
 				connL.SetReadDeadline(time.Now().Add(timeout))
