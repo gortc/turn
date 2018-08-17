@@ -160,9 +160,12 @@ func TestClientMultiplexed(t *testing.T) {
 	core, logs := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core)
 	connL, connR := testPipe(t, "server", "client")
+	timeout := time.Second * 10
 	c, createErr := NewClient(ClientOptions{
-		Log:  logger,
-		Conn: connR,
+		Log:          logger,
+		Conn:         connR,
+		RTO:          timeout,
+		NoRetransmit: true,
 	})
 	if createErr != nil {
 		t.Fatal(createErr)
@@ -171,7 +174,6 @@ func TestClientMultiplexed(t *testing.T) {
 		t.Fatal("client should not be nil")
 	}
 	gotRequest := make(chan struct{})
-	timeout := time.Second * 10
 	connL.SetDeadline(time.Now().Add(timeout))
 	connR.SetDeadline(time.Now().Add(timeout))
 	go func() {
