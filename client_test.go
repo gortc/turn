@@ -144,7 +144,7 @@ func TestClientMultiplexed(t *testing.T) {
 	}()
 	p, permErr := a.CreateUDP(peer)
 	if permErr != nil {
-		t.Error(permErr)
+		t.Fatal(permErr)
 	}
 	select {
 	case <-gotRequest:
