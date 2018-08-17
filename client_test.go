@@ -62,6 +62,7 @@ type verboseConn struct {
 }
 
 func (c *verboseConn) Read(b []byte) (n int, err error) {
+	c.t.Helper()
 	c.t.Logf("%s: read start", c.name)
 	defer func() {
 		c.t.Logf("%s: read: (%d, %v)", c.name, n, err)
@@ -70,6 +71,7 @@ func (c *verboseConn) Read(b []byte) (n int, err error) {
 }
 
 func (c *verboseConn) Write(b []byte) (n int, err error) {
+	c.t.Helper()
 	c.t.Logf("%s: write start", c.name)
 	defer func() {
 		c.t.Logf("%s: write: (%d, %v)", c.name, n, err)
@@ -78,6 +80,7 @@ func (c *verboseConn) Write(b []byte) (n int, err error) {
 }
 
 func (c *verboseConn) Close() error {
+	c.t.Helper()
 	c.t.Logf("%s: close", c.name)
 	return c.conn.Close()
 }
@@ -91,16 +94,19 @@ func (c *verboseConn) RemoteAddr() net.Addr {
 }
 
 func (c *verboseConn) SetDeadline(t time.Time) error {
+	c.t.Helper()
 	c.t.Logf("%s: SetDeadline(%s)", c.name, t)
 	return c.conn.SetDeadline(t)
 }
 
 func (c *verboseConn) SetReadDeadline(t time.Time) error {
+	c.t.Helper()
 	c.t.Logf("%s: SetReadDeadline(%s)", c.name, t)
 	return c.conn.SetReadDeadline(t)
 }
 
 func (c *verboseConn) SetWriteDeadline(t time.Time) error {
+	c.t.Helper()
 	c.t.Logf("%s: SetWriteDeadline(%s)", c.name, t)
 	return c.conn.SetWriteDeadline(t)
 }
