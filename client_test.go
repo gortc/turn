@@ -2,6 +2,7 @@ package turn
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -61,22 +62,51 @@ type verboseConn struct {
 	t    *testing.T
 }
 
+func verboseBytes(b []byte) string {
+	switch {
+	case stun.IsMessage(b):
+		m := stun.New()
+		if _, err := m.Write(b); err != nil {
+			return "stun (invalid)"
+		}
+		return fmt.Sprintf("stun (%s)", m)
+	case IsChannelData(b):
+		d := ChannelData{
+			Raw: b,
+		}
+		if err := d.Decode(); err != nil {
+			return "chandata (invalid)"
+		}
+		return fmt.Sprintf("chandata (n: 0x%x, len: %d)", int(d.Number), d.Length)
+	default:
+		return "raw"
+	}
+}
+
 func (c *verboseConn) Read(b []byte) (n int, err error) {
 	c.t.Helper()
 	c.t.Logf("%s: read start", c.name)
 	defer func() {
 		c.t.Helper()
-		c.t.Logf("%s: read: (%d, %v)", c.name, n, err)
+		if err != nil {
+			c.t.Logf("%s: read: %v", c.name, err)
+		} else {
+			c.t.Logf("%s: read(%d): %s", c.name, n, verboseBytes(b))
+		}
 	}()
 	return c.conn.Read(b)
 }
 
 func (c *verboseConn) Write(b []byte) (n int, err error) {
 	c.t.Helper()
-	c.t.Logf("%s: write start", c.name)
+	c.t.Logf("%s: write start: %s", c.name, verboseBytes(b))
 	defer func() {
 		c.t.Helper()
-		c.t.Logf("%s: write: (%d, %v)", c.name, n, err)
+		if err != nil {
+			c.t.Logf("%s: write: %s: %v", c.name, verboseBytes(b), err)
+		} else {
+			c.t.Logf("%s: write: %s", c.name, verboseBytes(b))
+		}
 	}()
 	return c.conn.Write(b)
 }
