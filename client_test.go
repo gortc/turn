@@ -143,6 +143,7 @@ func TestClientMultiplexed(t *testing.T) {
 	gotRequest := make(chan struct{})
 	timeout := time.Second * 10
 	connL.SetDeadline(time.Now().Add(timeout))
+	connR.SetDeadline(time.Now().Add(timeout))
 	go func() {
 		buf := make([]byte, 1500)
 		readN, readErr := connL.Read(buf)
