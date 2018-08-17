@@ -144,6 +144,7 @@ func TestClientMultiplexed(t *testing.T) {
 		gotRequest <- struct{}{}
 	}()
 	t.Log("creating udp permission")
+	connR.SetWriteDeadline(time.Now().Add(timeout))
 	p, permErr := a.CreateUDP(peer)
 	if permErr != nil {
 		t.Fatal(permErr)
@@ -181,6 +182,7 @@ func TestClientMultiplexed(t *testing.T) {
 		}
 		gotRequest <- struct{}{}
 	}()
+	connR.SetWriteDeadline(time.Now().Add(timeout))
 	if bindErr := p.Bind(); bindErr != nil {
 		t.Fatalf("failed to bind: %v", bindErr)
 	}
@@ -207,6 +209,7 @@ func TestClientMultiplexed(t *testing.T) {
 		gotRequest <- struct{}{}
 	}()
 	sent := []byte{1, 2, 3, 4}
+	connR.SetWriteDeadline(time.Now().Add(timeout))
 	if _, writeErr := p.Write(sent); writeErr != nil {
 		t.Fatal(writeErr)
 	}
