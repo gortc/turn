@@ -55,10 +55,73 @@ func TestNewClient(t *testing.T) {
 	})
 }
 
+type verboseConn struct {
+	name string
+	conn net.Conn
+	t    *testing.T
+}
+
+func (c *verboseConn) Read(b []byte) (n int, err error) {
+	c.t.Logf("%s: read start", c.name)
+	defer func() {
+		c.t.Logf("%s: read: (%d, %v)", c.name, n, err)
+	}()
+	return c.conn.Read(b)
+}
+
+func (c *verboseConn) Write(b []byte) (n int, err error) {
+	c.t.Logf("%s: write start", c.name)
+	defer func() {
+		c.t.Logf("%s: write: (%d, %v)", c.name, n, err)
+	}()
+	return c.conn.Write(b)
+}
+
+func (c *verboseConn) Close() error {
+	c.t.Logf("%s: close", c.name)
+	return c.conn.Close()
+}
+
+func (c *verboseConn) LocalAddr() net.Addr {
+	return c.conn.LocalAddr()
+}
+
+func (c *verboseConn) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
+}
+
+func (c *verboseConn) SetDeadline(t time.Time) error {
+	c.t.Logf("%s: SetDeadline(%s)", c.name, t)
+	return c.conn.SetDeadline(t)
+}
+
+func (c *verboseConn) SetReadDeadline(t time.Time) error {
+	c.t.Logf("%s: SetReadDeadline(%s)", c.name, t)
+	return c.conn.SetReadDeadline(t)
+}
+
+func (c *verboseConn) SetWriteDeadline(t time.Time) error {
+	c.t.Logf("%s: SetWriteDeadline(%s)", c.name, t)
+	return c.conn.SetWriteDeadline(t)
+}
+
+func testPipe(t *testing.T, lName, rName string) (net.Conn, net.Conn) {
+	connL, connR := net.Pipe()
+	return &verboseConn{
+			name: lName,
+			conn: connL,
+			t:    t,
+		}, &verboseConn{
+			name: rName,
+			conn: connR,
+			t:    t,
+		}
+}
+
 func TestClientMultiplexed(t *testing.T) {
 	core, logs := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core)
-	connL, connR := net.Pipe()
+	connL, connR := testPipe(t, "server", "client")
 	c, createErr := NewClient(ClientOptions{
 		Log:  logger,
 		Conn: connR,
