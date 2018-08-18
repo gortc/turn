@@ -6,6 +6,10 @@ pkg github.com/gortc/turn, const DefaultTLSPort = 5349
 pkg github.com/gortc/turn, const DefaultTLSPort ideal-int
 pkg github.com/gortc/turn, const ProtoUDP = 17
 pkg github.com/gortc/turn, const ProtoUDP Protocol
+pkg github.com/gortc/turn, const RequestedFamilyIPv4 = 1
+pkg github.com/gortc/turn, const RequestedFamilyIPv4 RequestedAddressFamily
+pkg github.com/gortc/turn, const RequestedFamilyIPv6 = 2
+pkg github.com/gortc/turn, const RequestedFamilyIPv6 RequestedAddressFamily
 pkg github.com/gortc/turn, const Scheme = "turn"
 pkg github.com/gortc/turn, const Scheme ideal-string
 pkg github.com/gortc/turn, const SchemeSecure = "turns"
@@ -44,6 +48,7 @@ pkg github.com/gortc/turn, method (*Permission) SetReadDeadline(time.Time) error
 pkg github.com/gortc/turn, method (*Permission) SetWriteDeadline(time.Time) error
 pkg github.com/gortc/turn, method (*Permission) Write([]uint8) (int, error)
 pkg github.com/gortc/turn, method (*RelayedAddress) GetFrom(*stun.Message) error
+pkg github.com/gortc/turn, method (*RequestedAddressFamily) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*RequestedTransport) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*ReservationToken) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (Addr) Equal(Addr) bool
@@ -72,6 +77,8 @@ pkg github.com/gortc/turn, method (PeerAddress) String() string
 pkg github.com/gortc/turn, method (Protocol) String() string
 pkg github.com/gortc/turn, method (RelayedAddress) AddTo(*stun.Message) error
 pkg github.com/gortc/turn, method (RelayedAddress) String() string
+pkg github.com/gortc/turn, method (RequestedAddressFamily) AddTo(*stun.Message) error
+pkg github.com/gortc/turn, method (RequestedAddressFamily) String() string
 pkg github.com/gortc/turn, method (RequestedTransport) AddTo(*stun.Message) error
 pkg github.com/gortc/turn, method (RequestedTransport) String() string
 pkg github.com/gortc/turn, method (ReservationToken) AddTo(*stun.Message) error
@@ -114,6 +121,7 @@ pkg github.com/gortc/turn, type Protocol uint8
 pkg github.com/gortc/turn, type RelayedAddress struct
 pkg github.com/gortc/turn, type RelayedAddress struct, IP net.IP
 pkg github.com/gortc/turn, type RelayedAddress struct, Port int
+pkg github.com/gortc/turn, type RequestedAddressFamily uint8
 pkg github.com/gortc/turn, type RequestedTransport struct
 pkg github.com/gortc/turn, type RequestedTransport struct, Protocol Protocol
 pkg github.com/gortc/turn, type ReservationToken []uint8
