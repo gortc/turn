@@ -49,7 +49,6 @@ func TestParseURI(t *testing.T) {
 			out: URI{
 				Host:      "example.org",
 				Scheme:    Scheme,
-				Port:      8000,
 				Transport: TransportUDP,
 			},
 		},
