@@ -13,6 +13,71 @@ Complies to [gortc principles](https://gortc.io/#principles) as core package.
 Based on [gortc/stun](https://github.com/gortc/stun) package.
 See [gortcd](https://github.com/gortc/gortcd) for TURN server.
 
+## Example
+If we have a TURN Server listening on example.com port 3478 (UDP) and
+know correct credentials, we can use it to relay data to peer which
+is listens on 10.0.0.1:34587 (UDP) and writing back any data it receives:
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+	"net"
+	"os"
+	"time"
+
+	"github.com/gortc/turn"
+)
+
+func main() {
+	// Resolving to TURN server.
+	raddr, err := net.ResolveUDPAddr("udp", "example.com:3478")
+	if err != nil {
+		panic(err)
+	}
+	c, err := net.DialUDP("udp", nil, raddr)
+	if err != nil {
+		panic(err)
+	}
+	client, clientErr := turn.NewClient(turn.ClientOptions{
+		Conn:     c,
+		// Credentials:
+		Username: "username",
+		Password: "password",
+	})
+	if clientErr != nil {
+		panic(clientErr)
+	}
+	a, allocErr := client.Allocate()
+	if allocErr != nil {
+		panic(allocErr)
+	}
+	peerAddr, resolveErr := net.ResolveUDPAddr("udp", "10.0.0.1:34587")
+	if resolveErr != nil {
+		panic(resolveErr)
+	}
+	permission, createErr := a.Create(peerAddr)
+	if createErr != nil {
+		panic(createErr)
+	}
+	// Permission implements net.Conn.
+	if _, writeRrr := fmt.Fprint(permission, "hello world!"); writeRrr != nil {
+		panic(peerAddr)
+	}
+	buf := make([]byte, 1500)
+	n, readErr := permission.Read(buf)
+	if readErr != nil {
+		panic(readErr)
+	}
+	fmt.Println("got message:", string(buf[:n]))
+	// Also you can use ChannelData messages to reduce overhead:
+	if err := permission.Bind(); err != nil {
+		panic(err)
+	}
+}
+```
+
 ## Supported RFCs
 
 - [x] [RFC 5766](https://tools.ietf.org/html/rfc5766) — Traversal Using Relays around NAT
