@@ -8,4 +8,5 @@ cmd/turn-client/turn-client
 
 .idea
 
-e2e/*/logs-*.txt
+e2e/*/log-*.txt
+e2e/*/*.pcap

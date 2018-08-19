@@ -1,4 +1,4 @@
-version: '3'
+version: '3.6'
 
 services:
   turn-peer:
@@ -30,3 +30,8 @@ services:
     image: gortc/coturn
     volumes:
       - ./turnserver.conf:/etc/turnserver.conf
+
+networks:
+  default:
+    external:
+      name: turn_e2e_coturn
