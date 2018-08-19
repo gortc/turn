@@ -29,7 +29,7 @@ func captureLogs(ctx context.Context, name string) (*bytes.Buffer, error) {
 	if err := c.Run(); err != nil {
 		return buf, err
 	}
-	f, fErr := os.Create("logs-" + name + ".txt")
+	f, fErr := os.Create("log-" + name + ".txt")
 	if fErr == nil {
 		f.Write(buf.Bytes())
 		f.Close()
