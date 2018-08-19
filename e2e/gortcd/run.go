@@ -20,13 +20,21 @@ func run(ctx context.Context, name string, params ...string) {
 	}
 }
 
-func captureLogs(ctx context.Context) (*bytes.Buffer, error) {
+func captureLogs(ctx context.Context, name string) (*bytes.Buffer, error) {
 	captureCtx, _ := context.WithTimeout(ctx, time.Second*5)
-	c := exec.CommandContext(captureCtx, "docker", "logs", "ci_turn-client_1")
+	c := exec.CommandContext(captureCtx, "docker", "logs", "ci_turn-"+name+"_1")
 	buf := new(bytes.Buffer)
-	c.Stderr = os.Stderr
+	c.Stderr = buf
 	c.Stdout = buf
-	return buf, c.Run()
+	if err := c.Run(); err != nil {
+		return buf, err
+	}
+	f, fErr := os.Create("logs-" + name + ".txt")
+	if fErr == nil {
+		f.Write(buf.Bytes())
+		f.Close()
+	}
+	return buf, nil
 }
 
 func main() {
@@ -59,8 +67,11 @@ func main() {
 	c := exec.CommandContext(ctx, "docker", "wait", "ci_turn-client_1")
 	c.Stderr = os.Stderr
 	runErr := c.Run()
-	buf, err := captureLogs(context.Background())
-	if err == nil {
+	captureCtx := context.Background()
+	captureLogs(captureCtx, "server")
+	captureLogs(captureCtx, "peer")
+	if buf, err := captureLogs(captureCtx, "client"); err == nil {
+		// Output the logs for the test (for clarity)
 		io.Copy(os.Stdout, buf)
 	}
 	if runErr == nil {

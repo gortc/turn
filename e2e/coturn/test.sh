@@ -34,8 +34,12 @@ fi
 # wait for the test service to complete and grab the exit code
 TEST_EXIT_CODE=`docker wait ci_turn-client_1`
 
+docker logs ci_turn-client_1 > logs-client.txt
+docker logs ci_turn-peer_1 > logs-peer.txt
+docker logs ci_turn-server_1 > logs-server.txt
+
 # output the logs for the test (for clarity)
-docker logs ci_turn-client_1
+cat logs-client.txt
 
 # inspect the output of the test and display respective message
 if [ -z ${TEST_EXIT_CODE+x} ] || [ "$TEST_EXIT_CODE" -ne 0 ] ; then

@@ -7,3 +7,5 @@ cmd/turn-client/turn-client
 *.out
 
 .idea
+
+e2e/*/logs-*.txt
