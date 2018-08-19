@@ -39,7 +39,7 @@ echo "will capture traffic on $CAPTURE_INTERFACE$"
 
 docker run -e INTERFACE=${CAPTURE_INTERFACE} -e SUBNET=${NETWORK_SUBNET} -d \
     -v $(pwd):/root/dump \
-    --name ci_tcpdump --net=host --cap-add ALL gortc/tcpdump
+    --name ci_tcpdump --net=host gortc/tcpdump
 
 # build and run the composed services
 docker-compose -p ci build && docker-compose -p ci up -d
