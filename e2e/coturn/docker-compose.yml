@@ -3,15 +3,15 @@ version: '3'
 services:
   turn-peer:
     entrypoint:
-      - e2e
+      - turn-client
       - peer
     depends_on:
       - turn-server
     links:
       - turn-server
     build:
-      context: ..
-      dockerfile: "e2e/Dockerfile"
+      context: ../..
+      dockerfile: "e2e/turn-client/Dockerfile"
       args:
         CI_GO_VERSION: ${CI_GO_VERSION}
   turn-client:
@@ -22,11 +22,11 @@ services:
       - turn-server
       - turn-peer
     build:
-      context: ..
-      dockerfile: "e2e/Dockerfile"
+      context: ../..
+      dockerfile: "e2e/turn-client/Dockerfile"
       args:
         CI_GO_VERSION: ${CI_GO_VERSION}
   turn-server:
     image: gortc/coturn
     volumes:
-    - ./turnserver.conf:/etc/turnserver.conf
+      - ./turnserver.conf:/etc/turnserver.conf
