@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.com/gortc/turn.svg?branch=master)](https://travis-ci.com/gortc/turn)
-[![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1)
+[![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgortc%2Fturn.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgortc%2Fturn?ref=badge_shield)
+/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1)
 [![Build status](https://ci.appveyor.com/api/projects/status/bodd3l5hgu1agxpf/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/turn-gvuk2/branch/master)
 [![GoDoc](https://godoc.org/github.com/gortc/turn?status.svg)](http://godoc.org/github.com/gortc/turn)
 [![codecov](https://codecov.io/gh/gortc/turn/branch/master/graph/badge.svg)](https://codecov.io/gh/gortc/turn)
@@ -106,3 +107,6 @@ BenchmarkLifetime/AddTo-12           100000000   13.70 ns/op                    
 BenchmarkLifetime/GetFrom-12         200000000    7.10 ns/op                       0 B/op   0 allocs/op
 ok  	github.com/gortc/turn	19.110s
 ```
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgortc%2Fturn.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgortc%2Fturn?ref=badge_large)
