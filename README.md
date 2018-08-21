@@ -147,6 +147,3 @@ BenchmarkLifetime/AddTo-12           100000000   13.70 ns/op                    
 BenchmarkLifetime/GetFrom-12         200000000    7.10 ns/op                       0 B/op   0 allocs/op
 ok  	github.com/gortc/turn	19.110s
 ```
-
-## License
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgortc%2Fturn.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgortc%2Fturn?ref=badge_large)
