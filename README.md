@@ -44,8 +44,8 @@ func main() {
 	client, clientErr := turn.NewClient(turn.ClientOptions{
 		Conn:     c,
 		// Credentials:
-		Username: "username",
-		Password: "password",
+		Username: "user",
+		Password: "secret",
 	})
 	if clientErr != nil {
 		panic(clientErr)
@@ -82,6 +82,9 @@ func main() {
 You can use the `turn.gortc.io:3478` *gortcd* TURN server instance for experiments.
 The only allowed peer address is `127.0.0.1:56780` (that is running near the *gortcd*)
 which will echo back any message it receives. Username is `user`, password is `secret`.
+
+So just change `example.com:3478` to `turn.gortc.io:3478` and `10.0.0.1:34587` to `127.0.0.1:56780`
+in previous example and it should just work:
 ```bash
 $ go get github.com/gortc/turn/cmd/turn-client
 $ turn-client -server turn.gortc.io:3478 -peer 127.0.0.1:56780
