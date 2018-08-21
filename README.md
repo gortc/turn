@@ -78,9 +78,9 @@ func main() {
 	}
 }
 ```
-
-You can use the `turn.gortc.io:3478` gortcd TURN server instance for experiments.
-The only allowed peer address is `127.0.0.1:56780` (that is running near the gortcd)
+### Server for experiments
+You can use the `turn.gortc.io:3478` *gortcd* TURN server instance for experiments.
+The only allowed peer address is `127.0.0.1:56780` (that is running near the *gortcd*)
 which will echo back any message it receives. Username is `user`, password is `secret`.
 ```bash
 $ go get github.com/gortc/turn/cmd/turn-client
