@@ -116,7 +116,7 @@ $ turn-client -server turn.gortc.io:3478 -peer 127.0.0.1:56780
 - [ ] [RFC 6062](https://tools.ietf.org/html/rfc6062) — TURN Extension for TCP Allocations
 
 # Testing
-Server behavior is tested and verified in many ways:
+Client behavior is tested and verified in many ways:
   * End-To-End with long-term credentials
     * **coturn**: The coturn [server](https://github.com/coturn/coturn/wiki/turnserver) (linux)
     * **gortcd**: The [gortcd](https://github.com/gortc/gortcd) server (windows)
