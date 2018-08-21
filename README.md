@@ -113,7 +113,8 @@ $ turn-client -server turn.gortc.io:3478 -peer 127.0.0.1:56780
     - [ ] TCP or TLS transport for client
 - [x] [RFC 6156](https://tools.ietf.org/html/rfc6156) — TURN Extension for IPv6
 - [x] [RFC 7065](https://tools.ietf.org/html/rfc7065) — TURN URI
-- [ ] [RFC 6062](https://tools.ietf.org/html/rfc6062) — TURN Extension for TCP Allocations
+- [ ] [RFC 5928](https://tools.ietf.org/html/rfc5928) — TURN Resolution Mechanism [#13](https://github.com/gortc/turn/issues/13)
+- [ ] [RFC 6062](https://tools.ietf.org/html/rfc6062) — TURN Extension for TCP Allocations [#14](https://github.com/gortc/turn/issues/14)
 
 # Testing
 Client behavior is tested and verified in many ways:
