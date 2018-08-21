@@ -109,9 +109,10 @@ $ turn-client -server turn.gortc.io:3478 -peer 127.0.0.1:56780
 ## Supported RFCs
 
 - [x] [RFC 5766](https://tools.ietf.org/html/rfc5766) — Traversal Using Relays around NAT
-- [x] [RFC 7065](https://tools.ietf.org/html/rfc7065) — TURN URI
+    - [ ] TCP or TLS transport for client
 - [x] [RFC 6156](https://tools.ietf.org/html/rfc6156) — TURN Extension for IPv6
-- [ ] TCP or TLS transport for client
+- [x] [RFC 7065](https://tools.ietf.org/html/rfc7065) — TURN URI
+- [ ] [RFC 6062](https://tools.ietf.org/html/rfc6062) — TURN Extension for TCP Allocations
 
 ## Benchmarks
 
