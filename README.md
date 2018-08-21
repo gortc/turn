@@ -122,6 +122,7 @@ Client behavior is tested and verified in many ways:
     * **gortcd**: The [gortcd](https://github.com/gortc/gortcd) server (windows)
   * Bunch of code static checkers (linters)
   * Standard unit-tests with coverage reporting
+  * Explicit API backward compatibility [check](https://github.com/gortc/api), see `api` directory (relaxed until v1)
 
 See [TeamCity project](https://tc.gortc.io/project.html?projectId=turn&guest=1) and `e2e` directory
 for more information. Also the Wireshark `.pcap` files are available for some of e2e tests in
