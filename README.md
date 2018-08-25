@@ -122,7 +122,7 @@ Client behavior is tested and verified in many ways:
     * **coturn**: The coturn [server](https://github.com/coturn/coturn/wiki/turnserver) (linux)
     * **gortcd**: The [gortcd](https://github.com/gortc/gortcd) server (windows)
   * Bunch of code static checkers (linters)
-  * Standard unit-tests with coverage reporting
+  * Unit-tests (linux {amd64, **arm**64}, windows}
   * Explicit API backward compatibility [check](https://github.com/gortc/api), see `api` directory (relaxed until v1)
 
 See [TeamCity project](https://tc.gortc.io/project.html?projectId=turn&guest=1) and `e2e` directory
