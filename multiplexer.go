@@ -33,22 +33,28 @@ func newMultiplexer(conn net.Conn, log *zap.Logger) *multiplexer {
 }
 
 func (m *multiplexer) discardData() {
-	_, err := io.Copy(ioutil.Discard, m.dataL)
+	discardLogged(m.log, "failed to discard dataL", m.dataL)
+}
+
+func discardLogged(l *zap.Logger, msg string, r io.Reader) {
+	l = l.WithOptions(zap.AddCallerSkip(1))
+	_, err := io.Copy(ioutil.Discard, r)
 	if err != nil {
-		m.log.Error("discard error", zap.Error(err))
+		l.Error(msg, zap.Error(err))
+	}
+}
+
+func closeLogged(l *zap.Logger, msg string, conn io.Closer) {
+	l = l.WithOptions(zap.AddCallerSkip(1))
+	if closeErr := conn.Close(); closeErr != nil {
+		l.Error(msg, zap.Error(closeErr))
 	}
 }
 
 func (m *multiplexer) close() {
-	if closeErr := m.turnR.Close(); closeErr != nil {
-		m.log.Error("failed to close turnR", zap.Error(closeErr))
-	}
-	if closeErr := m.stunR.Close(); closeErr != nil {
-		m.log.Error("failed to close stunR", zap.Error(closeErr))
-	}
-	if closeErr := m.dataR.Close(); closeErr != nil {
-		m.log.Error("failed to close dataR", zap.Error(closeErr))
-	}
+	closeLogged(m.log, "failed to close turnR", m.turnR)
+	closeLogged(m.log, "failed to close stunR", m.stunR)
+	closeLogged(m.log, "failed to close dataR", m.dataR)
 }
 
 func stunLog(ce *zapcore.CheckedEntry, data []byte) {
