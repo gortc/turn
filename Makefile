@@ -28,6 +28,7 @@ lint:
 		-e "attributes\.go.+credentials,.+,LOW.+\(gas\)" \
 		-e "parameter v always receives 4" \
 		-e "function \(\*Client\).allocate\(\) is high .+\(gocyclo\)" \
+		-e "parameter msg always receives" \
 		--enable="lll" --line-length=100 \
 		--enable="gofmt" \
 		--enable="goimports" \
