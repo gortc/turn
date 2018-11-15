@@ -1,6 +1,7 @@
 package turn
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -372,10 +373,14 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 		}
 		return nil, err
 	}
+	ctx, cancel := context.WithCancel(context.Background())
 	p := &Permission{
-		log:      a.log.Named("permission"),
-		peerAddr: peer,
-		client:   a.client,
+		log:         a.log.Named("permission"),
+		peerAddr:    peer,
+		client:      a.client,
+		ctx:         ctx,
+		cancel:      cancel,
+		refreshRate: time.Minute,
 	}
 	p.peerL, p.peerR = net.Pipe()
 	a.perms = append(a.perms, p)
@@ -390,6 +395,10 @@ type Permission struct {
 	peerAddr     PeerAddress
 	peerL, peerR net.Conn
 	client       *Client
+	ctx          context.Context
+	cancel       func()
+	wg           sync.WaitGroup
+	refreshRate  time.Duration
 }
 
 // Read data from peer.
@@ -411,24 +420,30 @@ func (p *Permission) Binding() ChannelNumber {
 	return p.number
 }
 
-// ErrAlreadyBound means that selected permission already has bound channel number.
-var ErrAlreadyBound = errors.New("channel already bound")
+var (
+	// ErrAlreadyBound means that selected permission already has bound channel number.
+	ErrAlreadyBound = errors.New("channel already bound")
+	// ErrNotBound means that selected permission already has no channel number.
+	ErrNotBound = errors.New("channel is not bound")
+)
 
-// Bind performs binding transaction, allocating channel binding for
-// the permission.
-//
-// TODO: Start binding refresh cycle
-func (p *Permission) Bind() error {
+// refreshBind performs rebinding of a channel.
+func (p *Permission) refreshBind() error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
-	if p.number != 0 {
-		return ErrAlreadyBound
+	if p.number == 0 {
+		return ErrNotBound
 	}
-	a := p.client.alloc
-	a.minBound++
-	n := a.minBound
+	if err := p.bind(p.number); err != nil {
+		return err
+	}
+	p.log.Debug("binding refreshed")
+	return nil
+}
 
+func (p *Permission) bind(n ChannelNumber) error {
 	// Starting transaction.
+	a := p.client.alloc
 	res := stun.New()
 	req := stun.New()
 	req.TransactionID = stun.NewTransactionID()
@@ -455,7 +470,42 @@ func (p *Permission) Bind() error {
 		return fmt.Errorf("unexpected response type %s", res.Type)
 	}
 	// Success.
+	return nil
+}
+
+// Bind performs binding transaction, allocating channel binding for
+// the permission.
+func (p *Permission) Bind() error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	if p.number != 0 {
+		return ErrAlreadyBound
+	}
+	a := p.client.alloc
+	a.minBound++
+	n := a.minBound
+	if err := p.bind(n); err != nil {
+		return err
+	}
 	p.number = n
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+	if p.refreshRate > 0 {
+		p.wg.Add(1)
+		go func() {
+			ticker := time.NewTicker(p.refreshRate)
+			defer p.wg.Done()
+			for {
+				select {
+				case <-ticker.C:
+					if err := p.refreshBind(); err != nil {
+						p.log.Error("failed to refresh bind", zap.Error(err))
+					}
+				case <-p.ctx.Done():
+					return
+				}
+			}
+		}()
+	}
 	return nil
 }
 
@@ -477,7 +527,16 @@ func (p *Permission) Write(b []byte) (n int, err error) {
 
 // Close implements net.Conn.
 func (p *Permission) Close() error {
-	return p.peerR.Close()
+	cErr := p.peerR.Close()
+	if cErr != nil {
+		return cErr
+	}
+	p.mux.Lock()
+	cancel := p.cancel
+	p.mux.Unlock()
+	cancel()
+	p.wg.Wait()
+	return nil
 }
 
 // LocalAddr is relayed address from TURN server.

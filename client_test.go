@@ -526,6 +526,12 @@ func TestClient_Allocate(t *testing.T) {
 			if !bytes.Equal(buf[:readN], sent) {
 				t.Error("data mismatch")
 			}
+			if err := p.Close(); err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if err := p.Close(); err != nil {
+				t.Errorf("unexpected error during second close: %v", err)
+			}
 			ensureNoErrors(t, logs)
 		})
 	})
