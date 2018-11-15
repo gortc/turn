@@ -454,7 +454,7 @@ func (p *Permission) refresh() error {
 	return p.client.alloc.allocate(p.peerAddr)
 }
 
-func (p *Permission) startRefreshLoop() {
+func (p *Permission) startLoop(f func()) {
 	p.wg.Add(1)
 	go func() {
 		ticker := time.NewTicker(p.refreshRate)
@@ -462,14 +462,20 @@ func (p *Permission) startRefreshLoop() {
 		for {
 			select {
 			case <-ticker.C:
-				if err := p.refresh(); err != nil {
-					p.log.Error("failed to refresh permission", zap.Error(err))
-				}
+				f()
 			case <-p.ctx.Done():
 				return
 			}
 		}
 	}()
+}
+
+func (p *Permission) startRefreshLoop() {
+	p.startLoop(func() {
+		if err := p.refresh(); err != nil {
+			p.log.Error("failed to refresh permission", zap.Error(err))
+		}
+	})
 }
 
 // refreshBind performs rebinding of a channel.
@@ -534,21 +540,11 @@ func (p *Permission) Bind() error {
 	}
 	p.number = n
 	if p.refreshRate > 0 {
-		p.wg.Add(1)
-		go func() {
-			ticker := time.NewTicker(p.refreshRate)
-			defer p.wg.Done()
-			for {
-				select {
-				case <-ticker.C:
-					if err := p.refreshBind(); err != nil {
-						p.log.Error("failed to refresh bind", zap.Error(err))
-					}
-				case <-p.ctx.Done():
-					return
-				}
+		p.startLoop(func() {
+			if err := p.refreshBind(); err != nil {
+				p.log.Error("failed to refresh bind", zap.Error(err))
 			}
-		}()
+		})
 	}
 	return nil
 }
