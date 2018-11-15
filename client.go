@@ -335,17 +335,12 @@ func (a *Allocation) Create(peer net.Addr) (*Permission, error) {
 	}
 }
 
-// CreateUDP creates new UDP Permission to peer with provided addr.
-func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
+func (a *Allocation) allocate(peer PeerAddress) error {
 	req := stun.New()
 	req.TransactionID = stun.NewTransactionID()
 	req.Type = stun.NewType(stun.MethodCreatePermission, stun.ClassRequest)
 	req.WriteHeader()
 	setters := make([]stun.Setter, 0, 10)
-	peer := PeerAddress{
-		IP:   addr.IP,
-		Port: addr.Port,
-	}
 	setters = append(setters, &peer)
 	if len(a.integrity) > 0 {
 		// Applying auth.
@@ -356,12 +351,12 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 	setters = append(setters, stun.Fingerprint)
 	for _, s := range setters {
 		if setErr := s.AddTo(req); setErr != nil {
-			return nil, setErr
+			return setErr
 		}
 	}
 	res := stun.New()
 	if doErr := a.client.do(req, res); doErr != nil {
-		return nil, doErr
+		return doErr
 	}
 	if res.Type.Class == stun.ClassErrorResponse {
 		var code stun.ErrorCodeAttribute
@@ -371,15 +366,24 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 				res.Type, code,
 			)
 		}
+		return err
+	}
+	return nil
+}
+
+// CreateUDP creates new UDP Permission to peer with provided addr.
+func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
+	peer := PeerAddress{
+		IP:   addr.IP,
+		Port: addr.Port,
+	}
+	if err := a.allocate(peer); err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithCancel(context.Background())
 	p := &Permission{
 		log:         a.log.Named("permission"),
 		peerAddr:    peer,
 		client:      a.client,
-		ctx:         ctx,
-		cancel:      cancel,
 		refreshRate: time.Minute,
 	}
 	p.peerL, p.peerR = net.Pipe()
@@ -426,6 +430,11 @@ var (
 	// ErrNotBound means that selected permission already has no channel number.
 	ErrNotBound = errors.New("channel is not bound")
 )
+
+// Refresh refreshes permission.
+func (p *Permission) Refresh() error {
+	return p.client.alloc.allocate(p.peerAddr)
+}
 
 // refreshBind performs rebinding of a channel.
 func (p *Permission) refreshBind() error {
