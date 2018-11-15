@@ -26,6 +26,17 @@ type Allocation struct {
 	nonce     stun.Nonce
 }
 
+func (a *Allocation) removePermission(p *Permission) {
+	newPerms := make([]*Permission, 0, len(a.perms))
+	for _, permission := range a.perms {
+		if p == permission {
+			continue
+		}
+		newPerms = append(newPerms, permission)
+	}
+	a.perms = newPerms
+}
+
 // Client for TURN server.
 //
 // Provides transparent net.Conn interfaces to remote peers.
@@ -386,6 +397,10 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 		client:      a.client,
 		refreshRate: time.Minute,
 	}
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+	if p.refreshRate > 0 {
+		p.startRefreshLoop()
+	}
 	p.peerL, p.peerR = net.Pipe()
 	a.perms = append(a.perms, p)
 	return p, nil
@@ -431,9 +446,26 @@ var (
 	ErrNotBound = errors.New("channel is not bound")
 )
 
-// Refresh refreshes permission.
-func (p *Permission) Refresh() error {
+func (p *Permission) refresh() error {
 	return p.client.alloc.allocate(p.peerAddr)
+}
+
+func (p *Permission) startRefreshLoop() {
+	p.wg.Add(1)
+	go func() {
+		ticker := time.NewTicker(p.refreshRate)
+		defer p.wg.Done()
+		for {
+			select {
+			case <-ticker.C:
+				if err := p.refresh(); err != nil {
+					p.log.Error("failed to refresh permission", zap.Error(err))
+				}
+			case <-p.ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
 // refreshBind performs rebinding of a channel.
@@ -497,7 +529,6 @@ func (p *Permission) Bind() error {
 		return err
 	}
 	p.number = n
-	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if p.refreshRate > 0 {
 		p.wg.Add(1)
 		go func() {
@@ -534,18 +565,17 @@ func (p *Permission) Write(b []byte) (n int, err error) {
 	return p.client.sendData(b, &p.peerAddr)
 }
 
-// Close implements net.Conn.
+// Close stops all refreshing loops for permission and removes it from
+// allocation.
 func (p *Permission) Close() error {
 	cErr := p.peerR.Close()
-	if cErr != nil {
-		return cErr
-	}
 	p.mux.Lock()
 	cancel := p.cancel
 	p.mux.Unlock()
 	cancel()
 	p.wg.Wait()
-	return nil
+	p.client.alloc.removePermission(p)
+	return cErr
 }
 
 // LocalAddr is relayed address from TURN server.
