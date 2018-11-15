@@ -20,13 +20,14 @@ type Allocation struct {
 	client    *Client
 	relayed   RelayedAddress
 	reflexive stun.XORMappedAddress
-	perms     []*Permission
+	perms     []*Permission // protected with client.mux
 	minBound  ChannelNumber
 	integrity stun.MessageIntegrity
 	nonce     stun.Nonce
 }
 
 func (a *Allocation) removePermission(p *Permission) {
+	a.client.mux.Lock()
 	newPerms := make([]*Permission, 0, len(a.perms))
 	for _, permission := range a.perms {
 		if p == permission {
@@ -35,6 +36,7 @@ func (a *Allocation) removePermission(p *Permission) {
 		newPerms = append(newPerms, permission)
 	}
 	a.perms = newPerms
+	a.client.mux.Unlock()
 }
 
 // Client for TURN server.
@@ -402,7 +404,9 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 		p.startRefreshLoop()
 	}
 	p.peerL, p.peerR = net.Pipe()
+	a.client.mux.Lock()
 	a.perms = append(a.perms, p)
+	a.client.mux.Unlock()
 	return p, nil
 }
 
