@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/gortc/stun"
+	"github.com/gortc/turn/testutil"
 )
 
 type testSTUN struct {
@@ -23,14 +24,6 @@ type testSTUN struct {
 func (t testSTUN) Indicate(m *stun.Message) error { return t.indicate(m) }
 
 func (t testSTUN) Do(m *stun.Message, f func(e stun.Event)) error { return t.do(m, f) }
-
-func ensureNoErrors(t *testing.T, logs *observer.ObservedLogs) {
-	for _, e := range logs.TakeAll() {
-		if e.Level == zapcore.ErrorLevel {
-			t.Error(e.Message)
-		}
-	}
-}
 
 func TestNewClient(t *testing.T) {
 	t.Run("NoConn", func(t *testing.T) {
@@ -337,7 +330,7 @@ func TestClientMultiplexed(t *testing.T) {
 		t.Error("data mismatch")
 	}
 	connL.Close()
-	ensureNoErrors(t, logs)
+	testutil.EnsureNoErrors(t, logs)
 }
 
 func TestClient_Allocate(t *testing.T) {
@@ -500,7 +493,7 @@ func TestClient_Allocate(t *testing.T) {
 		if !bytes.Equal(buf[:n], sent) {
 			t.Error("data mismatch")
 		}
-		ensureNoErrors(t, logs)
+		testutil.EnsureNoErrors(t, logs)
 		t.Run("Binding", func(t *testing.T) {
 			var (
 				n        ChannelNumber
@@ -601,7 +594,7 @@ func TestClient_Allocate(t *testing.T) {
 			if err := p.Close(); err != nil {
 				t.Errorf("unexpected error during second close: %v", err)
 			}
-			ensureNoErrors(t, logs)
+			testutil.EnsureNoErrors(t, logs)
 		})
 	})
 	t.Run("Authenticated", func(t *testing.T) {
@@ -738,6 +731,6 @@ func TestClient_Allocate(t *testing.T) {
 		if !bytes.Equal(buf[:n], sent) {
 			t.Error("data mismatch")
 		}
-		ensureNoErrors(t, logs)
+		testutil.EnsureNoErrors(t, logs)
 	})
 }
