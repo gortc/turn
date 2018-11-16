@@ -360,6 +360,46 @@ func TestClient_Allocate(t *testing.T) {
 				t.Fatal("unexpected error")
 			}
 		})
+		t.Run("PartialResponse", func(t *testing.T) {
+			for _, tc := range []struct {
+				Name    string
+				Message func(message *stun.Message) *stun.Message
+			}{
+				{
+					Name: "RelayedAddr",
+					Message: func(m *stun.Message) *stun.Message {
+						return stun.MustBuild(m, stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse),
+							stun.Fingerprint,
+						)
+					},
+				},
+				{
+					Name: "XORMappedAddr",
+					Message: func(m *stun.Message) *stun.Message {
+						return stun.MustBuild(m, stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse),
+							&stun.RawAttribute{
+								Type:  stun.AttrXORMappedAddress,
+								Value: []byte{1, 2, 3},
+							},
+							stun.Fingerprint,
+						)
+					},
+				},
+			} {
+				t.Run(tc.Name, func(t *testing.T) {
+					do := func(m *stun.Message, f func(stun.Event)) error {
+						f(stun.Event{
+							Message: tc.Message(m),
+						})
+						return nil
+					}
+					stunClient.do = do
+					if _, allocErr := c.Allocate(); allocErr == nil {
+						t.Error("expected error")
+					}
+				})
+			}
+		})
 		stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
 			if m.Type != AllocateRequest {
 				t.Errorf("bad request type: %s", m.Type)
