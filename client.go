@@ -20,7 +20,7 @@ type Client struct {
 	log         *zap.Logger
 	con         net.Conn
 	stun        STUNClient
-	mux         sync.Mutex
+	mux         sync.RWMutex
 	username    stun.Username
 	password    string
 	realm       stun.Realm
@@ -130,7 +130,7 @@ func (c *Client) stunHandler(e stun.Event) {
 		c.log.Error("failed to parse while handling incoming STUN message", zap.Error(err))
 		return
 	}
-	c.mux.Lock()
+	c.mux.RLock()
 	for i := range c.alloc.perms {
 		if !Addr(c.alloc.perms[i].peerAddr).Equal(Addr(addr)) {
 			continue
@@ -139,7 +139,7 @@ func (c *Client) stunHandler(e stun.Event) {
 			c.log.Error("failed to write", zap.Error(err))
 		}
 	}
-	c.mux.Unlock()
+	c.mux.RUnlock()
 }
 
 // ZapChannelNumber returns zap.Field for ChannelNumber.
@@ -149,7 +149,7 @@ func ZapChannelNumber(key string, v ChannelNumber) zap.Field {
 
 func (c *Client) handleChannelData(data *ChannelData) {
 	c.log.Debug("handleChannelData", ZapChannelNumber("number", data.Number))
-	c.mux.Lock()
+	c.mux.RLock()
 	for i := range c.alloc.perms {
 		if data.Number != c.alloc.perms[i].Binding() {
 			continue
@@ -158,7 +158,7 @@ func (c *Client) handleChannelData(data *ChannelData) {
 			c.log.Error("failed to write", zap.Error(err))
 		}
 	}
-	c.mux.Unlock()
+	c.mux.RUnlock()
 }
 
 func (c *Client) readUntilClosed() {
