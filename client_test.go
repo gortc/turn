@@ -391,6 +391,23 @@ func TestClient_Allocate(t *testing.T) {
 			})
 			return nil
 		}
+		t.Run("Create", func(t *testing.T) {
+			t.Run("UDP", func(t *testing.T) {
+				if _, permAddr := a.Create(&net.UDPAddr{
+					IP:   net.IPv4(127, 0, 0, 1),
+					Port: 1002,
+				}); permAddr != nil {
+					t.Error(permAddr)
+				}
+			})
+			t.Run("Unexpected", func(t *testing.T) {
+				if _, permAddr := a.Create(&net.IPAddr{
+					IP: net.IPv4(127, 0, 0, 1),
+				}); permAddr == nil {
+					t.Error("error expected")
+				}
+			})
+		})
 		p, permErr := a.CreateUDP(peer)
 		if permErr != nil {
 			t.Fatal(allocErr)
