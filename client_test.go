@@ -2,6 +2,7 @@ package turn
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"testing"
@@ -380,6 +381,48 @@ func TestClient_Allocate(t *testing.T) {
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 1001,
 		}
+		t.Run("CreateError", func(t *testing.T) {
+			addr := &net.UDPAddr{
+				IP:   net.IPv4(127, 0, 0, 1),
+				Port: 1003,
+			}
+			t.Run("Do", func(t *testing.T) {
+				doErr := errors.New("error")
+				stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+					return doErr
+				}
+				if _, permAddr := a.Create(addr); permAddr != doErr {
+					t.Errorf("unexpected err: %v", permAddr)
+				}
+			})
+			t.Run("ErrorCode", func(t *testing.T) {
+				stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+					f(stun.Event{
+						Message: stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassErrorResponse),
+							stun.CodeBadRequest,
+							stun.Fingerprint,
+						),
+					})
+					return nil
+				}
+				if _, permAddr := a.Create(addr); permAddr == nil {
+					t.Errorf("error expected")
+				}
+				t.Run("NoCode", func(t *testing.T) {
+					stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+						f(stun.Event{
+							Message: stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassErrorResponse),
+								stun.Fingerprint,
+							),
+						})
+						return nil
+					}
+					if _, permAddr := a.Create(addr); permAddr == nil {
+						t.Errorf("error expected")
+					}
+				})
+			})
+		})
 		stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
 			if m.Type != stun.NewType(stun.MethodCreatePermission, stun.ClassRequest) {
 				t.Errorf("bad request type: %s", m.Type)
