@@ -358,6 +358,15 @@ func TestClient_Allocate(t *testing.T) {
 			t.Fatal("should not be called")
 			return nil
 		}
+		t.Run("Error", func(t *testing.T) {
+			doErr := errors.New("error")
+			stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+				return doErr
+			}
+			if _, allocErr := c.Allocate(); allocErr != doErr {
+				t.Fatal("unexpected error")
+			}
+		})
 		stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
 			if m.Type != AllocateRequest {
 				t.Errorf("bad request type: %s", m.Type)
