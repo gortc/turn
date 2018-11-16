@@ -78,7 +78,7 @@ func TestRequestedAddressFamily(t *testing.T) {
 					t.Error("IsAttrSizeInvalid should be true")
 				}
 				m.Reset()
-				m.Add(stun.AttrRequestedAddressFamily, []byte{5, 0, 0, 0}[:])
+				m.Add(stun.AttrRequestedAddressFamily, []byte{5, 0, 0, 0})
 				if handle.GetFrom(m) == nil {
 					t.Error("should error on invalid value")
 				}
