@@ -29,6 +29,7 @@ lint:
 		-e "parameter v always receives 4" \
 		-e "function \(\*Client\).allocate\(\) is high .+\(gocyclo\)" \
 		-e "parameter msg always receives" \
+		-e "client.go.+warning: struct of size 104 could be 96" \
 		--enable="lll" --line-length=100 \
 		--enable="gofmt" \
 		--enable="goimports" \
