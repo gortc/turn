@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/gortc/stun"
-	"github.com/gortc/turn/testutil"
+	"github.com/gortc/turn/internal/testutil"
 )
 
 type testSTUN struct {
