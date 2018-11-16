@@ -78,6 +78,7 @@ func (p *Permission) startRefreshLoop() {
 		if err := p.refresh(); err != nil {
 			p.log.Error("failed to refresh permission", zap.Error(err))
 		}
+		p.log.Debug("permission refreshed")
 	})
 }
 
