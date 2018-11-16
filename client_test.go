@@ -48,6 +48,58 @@ func TestNewClient(t *testing.T) {
 		}
 		connL.Close()
 	})
+	t.Run("RefreshRate", func(t *testing.T) {
+		t.Run("Default", func(t *testing.T) {
+			connL, connR := net.Pipe()
+			c, createErr := NewClient(ClientOptions{
+				Conn: connR,
+			})
+			if createErr != nil {
+				t.Fatal(createErr)
+			}
+			if c == nil {
+				t.Fatal("client should not be nil")
+			}
+			if c.RefreshRate() != defaultRefreshRate {
+				t.Error("refresh rate not equals to default")
+			}
+			connL.Close()
+		})
+		t.Run("Disabled", func(t *testing.T) {
+			connL, connR := net.Pipe()
+			c, createErr := NewClient(ClientOptions{
+				RefreshDisabled: true,
+				Conn:            connR,
+			})
+			if createErr != nil {
+				t.Fatal(createErr)
+			}
+			if c == nil {
+				t.Fatal("client should not be nil")
+			}
+			if c.RefreshRate() != 0 {
+				t.Error("refresh rate not equals to zero")
+			}
+			connL.Close()
+		})
+		t.Run("Custom", func(t *testing.T) {
+			connL, connR := net.Pipe()
+			c, createErr := NewClient(ClientOptions{
+				RefreshRate: time.Second,
+				Conn:        connR,
+			})
+			if createErr != nil {
+				t.Fatal(createErr)
+			}
+			if c == nil {
+				t.Fatal("client should not be nil")
+			}
+			if c.RefreshRate() != time.Second {
+				t.Error("refresh rate not equals to value")
+			}
+			connL.Close()
+		})
+	})
 }
 
 type verboseConn struct {

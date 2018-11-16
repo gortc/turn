@@ -17,15 +17,16 @@ import (
 //
 // Provides transparent net.Conn interfaces to remote peers.
 type Client struct {
-	log       *zap.Logger
-	con       net.Conn
-	stun      STUNClient
-	mux       sync.Mutex
-	username  stun.Username
-	password  string
-	realm     stun.Realm
-	integrity stun.MessageIntegrity
-	alloc     *Allocation // the only allocation
+	log         *zap.Logger
+	con         net.Conn
+	stun        STUNClient
+	mux         sync.Mutex
+	username    stun.Username
+	password    string
+	realm       stun.Realm
+	integrity   stun.MessageIntegrity
+	alloc       *Allocation // the only allocation
+	refreshRate time.Duration
 }
 
 // ClientOptions contains available config for TURN  client.
@@ -41,7 +42,16 @@ type ClientOptions struct {
 	// STUN client options.
 	RTO          time.Duration
 	NoRetransmit bool
+
+	// TURN options.
+	RefreshRate     time.Duration
+	RefreshDisabled bool
 }
+
+// RefreshRate returns current rate of refresh requests.
+func (c *Client) RefreshRate() time.Duration { return c.refreshRate }
+
+const defaultRefreshRate = time.Minute
 
 // NewClient creates and initializes new TURN client.
 func NewClient(o ClientOptions) (*Client, error) {
@@ -84,7 +94,13 @@ func NewClient(o ClientOptions) (*Client, error) {
 	}
 	c.stun = o.STUN
 	c.con = o.Conn
-
+	c.refreshRate = defaultRefreshRate
+	if o.RefreshRate > 0 {
+		c.refreshRate = o.RefreshRate
+	}
+	if o.RefreshDisabled {
+		c.refreshRate = 0
+	}
 	if o.Username != "" {
 		c.username = stun.NewUsername(o.Username)
 	}

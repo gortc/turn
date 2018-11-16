@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -191,7 +190,7 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 		log:         a.log.Named("permission"),
 		peerAddr:    peer,
 		client:      a.client,
-		refreshRate: time.Minute,
+		refreshRate: a.client.refreshRate,
 	}
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if p.refreshRate > 0 {

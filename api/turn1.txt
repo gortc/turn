@@ -32,6 +32,7 @@ pkg github.com/gortc/turn, method (*ChannelData) Reset()
 pkg github.com/gortc/turn, method (*ChannelData) WriteHeader()
 pkg github.com/gortc/turn, method (*ChannelNumber) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*Client) Allocate() (*Allocation, error)
+pkg github.com/gortc/turn, method (*Client) RefreshRate() time.Duration
 pkg github.com/gortc/turn, method (*Data) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*EvenPort) GetFrom(*stun.Message) error
 pkg github.com/gortc/turn, method (*Lifetime) GetFrom(*stun.Message) error
@@ -101,6 +102,8 @@ pkg github.com/gortc/turn, type ClientOptions struct, Log *zap.Logger
 pkg github.com/gortc/turn, type ClientOptions struct, NoRetransmit bool
 pkg github.com/gortc/turn, type ClientOptions struct, Password string
 pkg github.com/gortc/turn, type ClientOptions struct, RTO time.Duration
+pkg github.com/gortc/turn, type ClientOptions struct, RefreshDisabled bool
+pkg github.com/gortc/turn, type ClientOptions struct, RefreshRate time.Duration
 pkg github.com/gortc/turn, type ClientOptions struct, STUN STUNClient
 pkg github.com/gortc/turn, type ClientOptions struct, Username string
 pkg github.com/gortc/turn, type Data []uint8
