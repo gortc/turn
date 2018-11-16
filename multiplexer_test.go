@@ -82,7 +82,7 @@ func TestMultiplexer(t *testing.T) {
 		if _, err := connL.Write([]byte{1, 2, 3, 4}); err != nil {
 			t.Error(err)
 		}
-		timeout := time.Tick(time.Second)
+		timeout := time.Tick(time.Second * 5)
 		for logs.Len() < 1 {
 			select {
 			case <-timeout:
