@@ -82,7 +82,7 @@ func (c *Client) allocate(req, res *stun.Message) (*Allocation, error) {
 	if err := code.GetFrom(res); err != nil {
 		return nil, err
 	}
-	if code.Code != stun.CodeUnauthorised {
+	if code.Code != stun.CodeUnauthorized {
 		return nil, fmt.Errorf("unexpected error code %d", code)
 	}
 	return nil, errUnauthorised

@@ -356,7 +356,7 @@ func TestClient_Allocate(t *testing.T) {
 					Message: stun.MustBuild(m, stun.NewType(stun.MethodAllocate, stun.ClassErrorResponse),
 						stun.NewRealm("realm"),
 						serverNonce,
-						stun.CodeUnauthorised,
+						stun.CodeUnauthorized,
 						stun.Fingerprint,
 					),
 				})
