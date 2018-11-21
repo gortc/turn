@@ -114,12 +114,14 @@ type STUNClient interface {
 	Do(m *stun.Message, f func(e stun.Event)) error
 }
 
+var dataIndication = stun.NewType(stun.MethodData, stun.ClassIndication)
+
 func (c *Client) stunHandler(e stun.Event) {
 	if e.Error != nil {
 		// Just ignoring.
 		return
 	}
-	if e.Message.Type != stun.NewType(stun.MethodData, stun.ClassIndication) {
+	if e.Message.Type != dataIndication {
 		return
 	}
 	var (

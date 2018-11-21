@@ -2,6 +2,7 @@ package turn
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"testing"
@@ -382,4 +383,141 @@ func TestClientMultiplexed(t *testing.T) {
 	}
 	connL.Close()
 	testutil.EnsureNoErrors(t, logs)
+}
+
+func TestClient_STUNHandler(t *testing.T) {
+	core, logs := observer.New(zapcore.DebugLevel)
+	logger := zap.New(core)
+	connL, connR := testPipe(t, "server", "client")
+	timeout := time.Second * 10
+	c, createErr := NewClient(ClientOptions{
+		Log:          logger,
+		Conn:         connR,
+		RTO:          timeout,
+		NoRetransmit: true,
+	})
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
+	defer connL.Close()
+	t.Run("IgnoreErr", func(t *testing.T) {
+		c.stunHandler(stun.Event{
+			Error: errors.New("error"),
+		})
+		testutil.EnsureNoErrors(t, logs)
+	})
+	t.Run("IgnoreNonData", func(t *testing.T) {
+		c.stunHandler(stun.Event{
+			Message: stun.MustBuild(stun.BindingRequest),
+		})
+		testutil.EnsureNoErrors(t, logs)
+	})
+	t.Run("ParseErr", func(t *testing.T) {
+		c.stunHandler(stun.Event{
+			Message: stun.MustBuild(dataIndication),
+		})
+		found := false
+		for _, l := range logs.All() {
+			if l.Level != zapcore.ErrorLevel {
+				continue
+			}
+			if l.Message != "failed to parse while handling incoming STUN message" {
+				t.Errorf("unexpected message: %s", l.Message)
+			} else {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("expected error message not found")
+		}
+	})
+	t.Run("WriteErr", func(t *testing.T) {
+		stunClient := &testSTUN{}
+		core, logs = observer.New(zapcore.DebugLevel)
+		logger := zap.New(core)
+		connL, connR = testPipe(t, "server", "client")
+		timeout := time.Second * 10
+		c, createErr = NewClient(ClientOptions{
+			Log:          logger,
+			Conn:         connR,
+			RTO:          timeout,
+			NoRetransmit: true,
+			STUN:         stunClient,
+		})
+		if createErr != nil {
+			t.Fatal(createErr)
+		}
+		stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+			switch m.Type {
+			case AllocateRequest:
+				f(stun.Event{
+					Message: stun.MustBuild(m,
+						stun.NewType(stun.MethodAllocate,
+							stun.ClassSuccessResponse,
+						),
+						&RelayedAddress{
+							Port: 1113,
+							IP:   net.IPv4(127, 0, 0, 2),
+						},
+						stun.Fingerprint,
+					),
+				})
+			case stun.NewType(stun.MethodCreatePermission, stun.ClassRequest):
+				f(stun.Event{
+					Message: stun.MustBuild(m,
+						stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+						stun.Fingerprint,
+					),
+				})
+			case stun.NewType(stun.MethodChannelBind, stun.ClassRequest):
+				f(stun.Event{
+					Message: stun.MustBuild(m,
+						stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+					),
+				})
+			default:
+				t.Fatalf("unexpected type: %s", m.Type)
+			}
+			return nil
+		}
+		a, allocErr := c.Allocate()
+		if allocErr != nil {
+			t.Fatal(allocErr)
+		}
+		perm, err := a.CreateUDP(&net.UDPAddr{
+			IP: net.IPv4(127, 0, 0, 1),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer perm.Close()
+		if err = perm.peerR.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err = perm.peerL.Close(); err != nil {
+			t.Fatal(err)
+		}
+		c.stunHandler(stun.Event{
+			Message: stun.MustBuild(dataIndication,
+				&PeerAddress{
+					IP: net.IPv4(127, 0, 0, 1),
+				},
+				&Data{},
+			),
+		})
+		found := false
+		for _, l := range logs.All() {
+			if l.Level != zapcore.ErrorLevel {
+				continue
+			}
+			if l.Message != "failed to write" {
+				t.Errorf("unexpected message: %s", l.Message)
+			} else {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("expected error message not found")
+		}
+	})
 }
