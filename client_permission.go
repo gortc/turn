@@ -58,6 +58,9 @@ func (p *Permission) refresh() error {
 }
 
 func (p *Permission) startLoop(f func()) {
+	if p.refreshRate == 0 {
+		return
+	}
 	p.wg.Add(1)
 	go func() {
 		ticker := time.NewTicker(p.refreshRate)
@@ -143,13 +146,11 @@ func (p *Permission) Bind() error {
 		return err
 	}
 	p.number = n
-	if p.refreshRate > 0 {
-		p.startLoop(func() {
-			if err := p.refreshBind(); err != nil {
-				p.log.Error("failed to refresh bind", zap.Error(err))
-			}
-		})
-	}
+	p.startLoop(func() {
+		if err := p.refreshBind(); err != nil {
+			p.log.Error("failed to refresh bind", zap.Error(err))
+		}
+	})
 	return nil
 }
 

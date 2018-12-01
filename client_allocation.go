@@ -193,9 +193,7 @@ func (a *Allocation) CreateUDP(addr *net.UDPAddr) (*Permission, error) {
 		refreshRate: a.client.refreshRate,
 	}
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	if p.refreshRate > 0 {
-		p.startRefreshLoop()
-	}
+	p.startRefreshLoop()
 	p.peerL, p.peerR = net.Pipe()
 	a.client.mux.Lock()
 	a.perms = append(a.perms, p)
