@@ -542,3 +542,42 @@ func TestClient_sendChan(t *testing.T) {
 	}
 	connL.Close()
 }
+
+func TestClient_do(t *testing.T) {
+	connL, connR := net.Pipe()
+	stunClient := &testSTUN{}
+	c, createErr := NewClient(ClientOptions{
+		STUN: stunClient,
+		Conn: connR,
+	})
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
+	if c == nil {
+		t.Fatal("client should not be nil")
+	}
+	t.Run("BadMessage", func(t *testing.T) {
+		stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+			f(stun.Event{
+				Message: &stun.Message{
+					Raw: []byte{0, 1, 1, 1, 2},
+				},
+			})
+			return nil
+		}
+		req, res := stun.New(), stun.New()
+		t.Run("Clone", func(t *testing.T) {
+			if err := c.do(req, res); err == nil {
+				t.Error("should error")
+			}
+		})
+		t.Run("NoClone", func(t *testing.T) {
+			if err := c.do(req, nil); err != nil {
+				t.Error("should not error")
+			}
+		})
+	})
+	if err := connL.Close(); err != nil {
+		t.Error(err)
+	}
+}
