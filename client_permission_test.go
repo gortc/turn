@@ -378,6 +378,86 @@ func TestPermission(t *testing.T) {
 					t.Error("error not logged")
 				}
 			})
+			t.Run("NoRefresh", func(t *testing.T) {
+				core, logs := observer.New(zapcore.DebugLevel)
+				logger := zap.New(core)
+				connL, connR := net.Pipe()
+				stunClient := &testSTUN{}
+				c, createErr := NewClient(ClientOptions{
+					Log:             logger,
+					Conn:            connR, // should not be used
+					STUN:            stunClient,
+					RefreshDisabled: true,
+				})
+				if createErr != nil {
+					t.Fatal(createErr)
+				}
+				stunClient.indicate = func(m *stun.Message) error {
+					t.Fatal("should not be called")
+					return nil
+				}
+				stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+					if m.Type != AllocateRequest {
+						t.Errorf("bad request type: %s", m.Type)
+					}
+					f(stun.Event{
+						Message: stun.MustBuild(m, stun.NewType(stun.MethodAllocate, stun.ClassSuccessResponse),
+							&RelayedAddress{
+								Port: 1113,
+								IP:   net.IPv4(127, 0, 0, 2),
+							},
+							stun.Fingerprint,
+						),
+					})
+					return nil
+				}
+				a, allocErr := c.Allocate()
+				if allocErr != nil {
+					t.Fatal(allocErr)
+				}
+				peer := &net.UDPAddr{
+					IP:   net.IPv4(127, 0, 0, 1),
+					Port: 1001,
+				}
+				var reqCount int
+				stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+					switch m.Type {
+					case stun.NewType(stun.MethodCreatePermission, stun.ClassRequest):
+						f(stun.Event{
+							Message: stun.MustBuild(m, stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+								stun.Fingerprint,
+							),
+						})
+					case stun.NewType(stun.MethodChannelBind, stun.ClassRequest):
+						reqCount++
+						f(stun.Event{
+							Message: stun.MustBuild(m,
+								stun.NewType(m.Type.Method, stun.ClassSuccessResponse),
+							),
+						})
+						if reqCount > 1 {
+							t.Error("second request is unexpected")
+						}
+					default:
+						t.Fatalf("unexpected type: %s", m.Type)
+					}
+					return nil
+				}
+				p, permErr := a.CreateUDP(peer)
+				if permErr != nil {
+					t.Fatal(allocErr)
+				}
+				if err := p.Bind(); err != nil {
+					t.Fatal(err)
+				}
+				if err := p.Close(); err != nil {
+					t.Error(err)
+				}
+				if err := connL.Close(); err != nil {
+					t.Error(err)
+				}
+				testutil.EnsureNoErrors(t, logs)
+			})
 		})
 	})
 }
