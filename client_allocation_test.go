@@ -34,13 +34,27 @@ func TestClient_Allocate(t *testing.T) {
 			return nil
 		}
 		t.Run("Error", func(t *testing.T) {
-			doErr := errors.New("error")
-			stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
-				return doErr
-			}
-			if _, allocErr := c.Allocate(); allocErr != doErr {
-				t.Fatal("unexpected error")
-			}
+			t.Run("Do", func(t *testing.T) {
+				doErr := errors.New("error")
+				stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+					return doErr
+				}
+				if _, allocErr := c.Allocate(); allocErr != doErr {
+					t.Fatal("unexpected error")
+				}
+			})
+			t.Run("Event", func(t *testing.T) {
+				evErr := errors.New("error")
+				stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
+					f(stun.Event{
+						Error: evErr,
+					})
+					return nil
+				}
+				if _, allocErr := c.Allocate(); allocErr != evErr {
+					t.Fatal("unexpected error")
+				}
+			})
 		})
 		t.Run("PartialResponse", func(t *testing.T) {
 			for _, tc := range []struct {
