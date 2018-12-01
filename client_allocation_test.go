@@ -188,6 +188,13 @@ func TestClient_Allocate(t *testing.T) {
 					t.Error("error expected")
 				}
 			})
+			t.Run("BadIP", func(t *testing.T) {
+				if _, permAddr := a.Create(&net.UDPAddr{
+					IP: []byte{1, 2},
+				}); permAddr == nil {
+					t.Error("error expected")
+				}
+			})
 		})
 		p, permErr := a.CreateUDP(peer)
 		if permErr != nil {
