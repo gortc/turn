@@ -521,3 +521,24 @@ func TestClient_STUNHandler(t *testing.T) {
 		}
 	})
 }
+
+func TestClient_sendChan(t *testing.T) {
+	connL, connR := net.Pipe()
+	c, createErr := NewClient(ClientOptions{
+		Conn: connR,
+	})
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
+	if c == nil {
+		t.Fatal("client should not be nil")
+	}
+	n, err := c.sendChan([]byte{0}, -1)
+	if n > 0 {
+		t.Error("sendChan should non return non-zero written bytes length")
+	}
+	if err != ErrInvalidChannelNumber {
+		t.Errorf("unexpected err: %v", err)
+	}
+	connL.Close()
+}
