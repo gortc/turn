@@ -34,7 +34,6 @@ lint:
 		--enable="gofmt" \
 		--enable="goimports" \
 		--enable="misspell" \
-		--enable="unused" \
 		--deadline=300s \
 		--disable="gochecknoglobals" \
 		--disable="interfacer" \
