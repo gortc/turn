@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -103,9 +105,11 @@ func TestNewClient(t *testing.T) {
 }
 
 type verboseConn struct {
-	name string
-	conn net.Conn
-	t    *testing.T
+	name      string
+	conn      net.Conn
+	closed    bool
+	closedMux sync.Mutex
+	t         *testing.T
 }
 
 func verboseBytes(b []byte) string {
@@ -129,10 +133,23 @@ func verboseBytes(b []byte) string {
 	}
 }
 
+func (c *verboseConn) isClosed() bool {
+	c.closedMux.Lock()
+	closed := c.closed
+	c.closedMux.Unlock()
+	return closed
+}
+
 func (c *verboseConn) Read(b []byte) (n int, err error) {
+	if c.isClosed() {
+		return 0, io.ErrClosedPipe
+	}
 	c.t.Helper()
 	c.t.Logf("%s: read start", c.name)
 	defer func() {
+		if c.isClosed() {
+			return
+		}
 		c.t.Helper()
 		if err != nil {
 			c.t.Logf("%s: read: %v", c.name, err)
@@ -144,9 +161,15 @@ func (c *verboseConn) Read(b []byte) (n int, err error) {
 }
 
 func (c *verboseConn) Write(b []byte) (n int, err error) {
+	if c.isClosed() {
+		return 0, io.ErrClosedPipe
+	}
 	c.t.Helper()
 	c.t.Logf("%s: write start: %s", c.name, verboseBytes(b))
 	defer func() {
+		if c.isClosed() {
+			return
+		}
 		c.t.Helper()
 		if err != nil {
 			c.t.Logf("%s: write: %s: %v", c.name, verboseBytes(b), err)
@@ -160,6 +183,9 @@ func (c *verboseConn) Write(b []byte) (n int, err error) {
 func (c *verboseConn) Close() error {
 	c.t.Helper()
 	c.t.Logf("%s: close", c.name)
+	c.closedMux.Lock()
+	c.closed = true
+	c.closedMux.Unlock()
 	return c.conn.Close()
 }
 
@@ -172,18 +198,27 @@ func (c *verboseConn) RemoteAddr() net.Addr {
 }
 
 func (c *verboseConn) SetDeadline(t time.Time) error {
+	if c.isClosed() {
+		return io.ErrClosedPipe
+	}
 	c.t.Helper()
 	c.t.Logf("%s: SetDeadline(%s)", c.name, t)
 	return c.conn.SetDeadline(t)
 }
 
 func (c *verboseConn) SetReadDeadline(t time.Time) error {
+	if c.isClosed() {
+		return io.ErrClosedPipe
+	}
 	c.t.Helper()
 	c.t.Logf("%s: SetReadDeadline(%s)", c.name, t)
 	return c.conn.SetReadDeadline(t)
 }
 
 func (c *verboseConn) SetWriteDeadline(t time.Time) error {
+	if c.isClosed() {
+		return io.ErrClosedPipe
+	}
 	c.t.Helper()
 	c.t.Logf("%s: SetWriteDeadline(%s)", c.name, t)
 	return c.conn.SetWriteDeadline(t)
@@ -220,8 +255,8 @@ func TestClientMultiplexed(t *testing.T) {
 		t.Fatal("client should not be nil")
 	}
 	gotRequest := make(chan struct{})
-	connL.SetDeadline(time.Now().Add(timeout))
-	connR.SetDeadline(time.Now().Add(timeout))
+	_ = connL.SetDeadline(time.Now().Add(timeout))
+	_ = connR.SetDeadline(time.Now().Add(timeout))
 	go func() {
 		buf := make([]byte, 1500)
 		readN, readErr := connL.Read(buf)
@@ -320,7 +355,7 @@ func TestClientMultiplexed(t *testing.T) {
 			stun.Fingerprint,
 		)
 		res.Encode()
-		connL.SetWriteDeadline(time.Now().Add(timeout / 2))
+		_ = connL.SetWriteDeadline(time.Now().Add(timeout / 2))
 		if _, writeErr := connL.Write(res.Raw); writeErr != nil {
 			t.Error("failed to write")
 		}
@@ -381,14 +416,23 @@ func TestClientMultiplexed(t *testing.T) {
 	if !bytes.Equal(buf[:n], sent) {
 		t.Error("data mismatch")
 	}
-	connL.Close()
+	mustClose(t, connL)
 	testutil.EnsureNoErrors(t, logs)
+}
+
+func mustClose(t *testing.T, closer io.Closer) {
+	t.Helper()
+	if err := closer.Close(); err != nil {
+		t.Errorf("failed to close: %v", err)
+	}
 }
 
 func TestClient_STUNHandler(t *testing.T) {
 	core, logs := observer.New(zapcore.DebugLevel)
 	logger := zap.New(core)
 	connL, connR := testPipe(t, "server", "client")
+	defer mustClose(t, connL)
+	defer mustClose(t, connR)
 	timeout := time.Second * 10
 	c, createErr := NewClient(ClientOptions{
 		Log:          logger,
@@ -399,7 +443,6 @@ func TestClient_STUNHandler(t *testing.T) {
 	if createErr != nil {
 		t.Fatal(createErr)
 	}
-	defer connL.Close()
 	t.Run("IgnoreErr", func(t *testing.T) {
 		c.stunHandler(stun.Event{
 			Error: errors.New("error"),
@@ -445,7 +488,7 @@ func TestClient_STUNHandler(t *testing.T) {
 			STUN:         stunClient,
 		})
 		if createErr != nil {
-			t.Fatal(createErr)
+			t.Error(createErr)
 		}
 		stunClient.do = func(m *stun.Message, f func(e stun.Event)) error {
 			switch m.Type {
@@ -490,7 +533,7 @@ func TestClient_STUNHandler(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer perm.Close()
+		defer mustClose(t, perm)
 		if err = perm.peerR.Close(); err != nil {
 			t.Fatal(err)
 		}
@@ -519,6 +562,7 @@ func TestClient_STUNHandler(t *testing.T) {
 		if !found {
 			t.Error("expected error message not found")
 		}
+
 	})
 }
 
@@ -540,7 +584,7 @@ func TestClient_sendChan(t *testing.T) {
 	if err != ErrInvalidChannelNumber {
 		t.Errorf("unexpected err: %v", err)
 	}
-	connL.Close()
+	mustClose(t, connL)
 }
 
 func TestClient_do(t *testing.T) {
