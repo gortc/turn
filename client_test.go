@@ -48,7 +48,8 @@ func TestNewClient(t *testing.T) {
 		if c == nil {
 			t.Fatal("client should not be nil")
 		}
-		connL.Close()
+		mustClose(t, connL)
+		mustClose(t, connR)
 	})
 	t.Run("RefreshRate", func(t *testing.T) {
 		t.Run("Default", func(t *testing.T) {
@@ -65,7 +66,8 @@ func TestNewClient(t *testing.T) {
 			if c.RefreshRate() != defaultRefreshRate {
 				t.Error("refresh rate not equals to default")
 			}
-			connL.Close()
+			mustClose(t, connL)
+			mustClose(t, connR)
 		})
 		t.Run("Disabled", func(t *testing.T) {
 			connL, connR := net.Pipe()
@@ -82,7 +84,8 @@ func TestNewClient(t *testing.T) {
 			if c.RefreshRate() != 0 {
 				t.Error("refresh rate not equals to zero")
 			}
-			connL.Close()
+			mustClose(t, connL)
+			mustClose(t, connR)
 		})
 		t.Run("Custom", func(t *testing.T) {
 			connL, connR := net.Pipe()
@@ -99,7 +102,8 @@ func TestNewClient(t *testing.T) {
 			if c.RefreshRate() != time.Second {
 				t.Error("refresh rate not equals to value")
 			}
-			connL.Close()
+			mustClose(t, connL)
+			mustClose(t, connR)
 		})
 	})
 }
