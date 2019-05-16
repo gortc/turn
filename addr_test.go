@@ -21,6 +21,23 @@ func TestAddr_FromUDPAddr(t *testing.T) {
 	}
 }
 
+func TestAddr_EqualIP(t *testing.T) {
+	a := Addr{
+		IP:   net.IPv4(127, 0, 0, 1),
+		Port: 1337,
+	}
+	b := Addr{
+		IP:   net.IPv4(127, 0, 0, 1),
+		Port: 1338,
+	}
+	if a.Equal(b) {
+		t.Error("a != b")
+	}
+	if !a.EqualIP(b) {
+		t.Error("a.IP should equal to b.IP")
+	}
+}
+
 func TestFiveTuple_Equal(t *testing.T) {
 	for _, tc := range []struct {
 		name string

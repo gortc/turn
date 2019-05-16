@@ -28,6 +28,11 @@ func (a Addr) Equal(b Addr) bool {
 	return a.IP.Equal(b.IP)
 }
 
+// EqualIP returns true if a and b have equal IP addresses.
+func (a Addr) EqualIP(b Addr) bool {
+	return a.IP.Equal(b.IP)
+}
+
 func (a Addr) String() string {
 	return fmt.Sprintf("%s:%d", a.IP, a.Port)
 }
