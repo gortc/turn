@@ -3,7 +3,7 @@ language: go
 sudo: false
 
 go:
-- stable
+ - stable
 
 install: true
 

@@ -8,7 +8,7 @@ branches:
 
 skip_tags: true
 
-clone_folder: c:\gopath\src\github.com\gortc\turn
+clone_folder: c:\src\gortc\turn
 
 environment:
   GOPATH: c:\gopath
