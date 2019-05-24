@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/gortc/stun"
+	"github.com/pion/stun"
 )
 
 func TestPeerAddress(t *testing.T) {

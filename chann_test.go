@@ -3,7 +3,7 @@ package turn
 import (
 	"testing"
 
-	"github.com/gortc/stun"
+	"github.com/pion/stun"
 )
 
 func BenchmarkChannelNumber(b *testing.B) {
@@ -103,11 +103,11 @@ func TestChannelNumber_Valid(t *testing.T) {
 		n     ChannelNumber
 		value bool
 	}{
-		{minChannelNumber - 1, false},
-		{minChannelNumber, true},
-		{minChannelNumber + 1, true},
-		{maxChannelNumber, true},
-		{maxChannelNumber + 1, false},
+		{MinChannelNumber - 1, false},
+		{MinChannelNumber, true},
+		{MinChannelNumber + 1, true},
+		{MaxChannelNumber, true},
+		{MaxChannelNumber + 1, false},
 	} {
 		t.Run(tc.n.String(), func(t *testing.T) {
 			if v := tc.n.Valid(); v != tc.value {

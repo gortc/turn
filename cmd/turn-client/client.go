@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/gortc/turn"
+	"github.com/pion/turnc"
 )
 
 var (
@@ -75,7 +76,7 @@ func main() {
 			)
 		}
 	}
-	if len(*password) == 0 {
+	if *password == "" {
 		fmt.Fprintln(os.Stderr, "No password set, auth is required.")
 		flag.Usage()
 		os.Exit(2)

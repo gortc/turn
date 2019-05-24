@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/gortc/stun"
+	"github.com/pion/stun"
 )
 
 // ChannelNumber represents CHANNEL-NUMBER attribute.
@@ -48,8 +48,8 @@ func (n *ChannelNumber) GetFrom(m *stun.Message) error {
 // 0x4000 through 0x7FFF: These values are the allowed channel
 // numbers (16,383 possible values).
 const (
-	minChannelNumber = 0x4000
-	maxChannelNumber = 0x7FFF
+	MinChannelNumber = 0x4000
+	MaxChannelNumber = 0x7FFF
 )
 
 // ErrInvalidChannelNumber means that channel number is not valid as by RFC 5766 Section 11.
@@ -57,7 +57,7 @@ var ErrInvalidChannelNumber = errors.New("channel number not in [0x4000, 0x7FFF]
 
 // isChannelNumberValid returns true if c in [0x4000, 0x7FFF].
 func isChannelNumberValid(c uint16) bool {
-	return c >= minChannelNumber && c <= maxChannelNumber
+	return c >= MinChannelNumber && c <= MaxChannelNumber
 }
 
 // Valid returns true if channel number has correct value that complies RFC 5766 Section 11 range.

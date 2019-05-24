@@ -3,7 +3,7 @@ package turn
 import (
 	"strconv"
 
-	"github.com/gortc/stun"
+	"github.com/pion/stun"
 )
 
 // Protocol is IANA assigned protocol number.

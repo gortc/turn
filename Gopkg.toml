@@ -22,8 +22,8 @@
 
 
 [[constraint]]
-  name = "github.com/gortc/stun"
-  version = "1.18.2"
+  name = "github.com/pion/stun"
+  version = "0.3"
 
 [[constraint]]
   name = "go.uber.org/zap"

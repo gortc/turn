@@ -2,15 +2,23 @@
 
 
 [[projects]]
-  digest = "1:8ff0a6a4a26da40ff5bd97e55b693edfd294800e5b8c572a53a043d524c49cc4"
-  name = "github.com/gortc/stun"
+  digest = "1:cbac0ecd7094aba7edac782e7a89fc3c01b67382fd277d251cfe3f01095f4e04"
+  name = "github.com/pion/stun"
   packages = [
     ".",
     "internal/hmac",
   ]
   pruneopts = "UT"
-  revision = "ce9f38fbf5043cdeecb89fd74cafdfb6fb1f4351"
-  version = "v1.18.2"
+  revision = "8e0ec0d856f6f92f80a604b6aef2b0c4191c9d48"
+  version = "v0.3.0"
+
+[[projects]]
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   digest = "1:3c1a69cdae3501bf75e76d0d86dc6f2b0a7421bc205c0cb7b96b19eed464a34d"
@@ -48,7 +56,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/gortc/stun",
+    "github.com/pion/stun",
     "go.uber.org/zap",
     "go.uber.org/zap/zapcore",
     "go.uber.org/zap/zaptest/observer",

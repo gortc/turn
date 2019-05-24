@@ -11,7 +11,7 @@ import (
 func TestChannelData_Encode(t *testing.T) {
 	d := &ChannelData{
 		Data:   []byte{1, 2, 3, 4},
-		Number: minChannelNumber + 1,
+		Number: MinChannelNumber + 1,
 	}
 	d.Encode()
 	b := &ChannelData{}
@@ -44,11 +44,11 @@ func TestChannelData_Equal(t *testing.T) {
 		{
 			name: "equal",
 			b: &ChannelData{
-				Number: minChannelNumber,
+				Number: MinChannelNumber,
 				Data:   []byte{1, 2, 3},
 			},
 			a: &ChannelData{
-				Number: minChannelNumber,
+				Number: MinChannelNumber,
 				Data:   []byte{1, 2, 3},
 			},
 			value: true,
@@ -56,33 +56,33 @@ func TestChannelData_Equal(t *testing.T) {
 		{
 			name: "number",
 			b: &ChannelData{
-				Number: minChannelNumber,
+				Number: MinChannelNumber,
 				Data:   []byte{1, 2, 3},
 			},
 			a: &ChannelData{
-				Number: minChannelNumber + 1,
+				Number: MinChannelNumber + 1,
 				Data:   []byte{1, 2, 3},
 			},
 		},
 		{
 			name: "length",
 			b: &ChannelData{
-				Number: minChannelNumber,
+				Number: MinChannelNumber,
 				Data:   []byte{1, 2, 3},
 			},
 			a: &ChannelData{
-				Number: minChannelNumber,
+				Number: MinChannelNumber,
 				Data:   []byte{1, 2, 3, 4},
 			},
 		},
 		{
 			name: "data",
 			b: &ChannelData{
-				Number: minChannelNumber,
+				Number: MinChannelNumber,
 				Data:   []byte{1, 2, 3},
 			},
 			a: &ChannelData{
-				Number: minChannelNumber,
+				Number: MinChannelNumber,
 				Data:   []byte{1, 2, 2},
 			},
 		},
@@ -140,7 +140,7 @@ func TestChannelData_Decode(t *testing.T) {
 func TestChannelData_Reset(t *testing.T) {
 	d := &ChannelData{
 		Data:   []byte{1, 2, 3, 4},
-		Number: minChannelNumber + 1,
+		Number: MinChannelNumber + 1,
 	}
 	d.Encode()
 	buf := make([]byte, len(d.Raw))
@@ -190,7 +190,7 @@ func BenchmarkIsChannelData(b *testing.B) {
 func BenchmarkChannelData_Encode(b *testing.B) {
 	d := &ChannelData{
 		Data:   []byte{1, 2, 3, 4},
-		Number: minChannelNumber + 1,
+		Number: MinChannelNumber + 1,
 	}
 	b.ReportAllocs()
 	b.SetBytes(4 + channelDataHeaderSize)
@@ -202,7 +202,7 @@ func BenchmarkChannelData_Encode(b *testing.B) {
 func BenchmarkChannelData_Decode(b *testing.B) {
 	d := &ChannelData{
 		Data:   []byte{1, 2, 3, 4},
-		Number: minChannelNumber + 1,
+		Number: MinChannelNumber + 1,
 	}
 	d.Encode()
 	buf := make([]byte, len(d.Raw))
@@ -222,7 +222,7 @@ func TestChannelData_Padding(t *testing.T) {
 	c := &ChannelData{
 		Data:    []byte{1},
 		Padding: true,
-		Number:  minChannelNumber + 1,
+		Number:  MinChannelNumber + 1,
 	}
 	c.Encode()
 	n := &ChannelData{

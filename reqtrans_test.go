@@ -3,7 +3,7 @@ package turn
 import (
 	"testing"
 
-	"github.com/gortc/stun"
+	"github.com/pion/stun"
 )
 
 func TestRequestedTransport(t *testing.T) {

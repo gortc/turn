@@ -4,7 +4,7 @@ package turn
 import (
 	"encoding/binary"
 
-	"github.com/gortc/stun"
+	"github.com/pion/stun"
 )
 
 // bin is shorthand for binary.BigEndian.
