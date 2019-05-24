@@ -5,8 +5,8 @@ cmd/turn-client/turn-client
 # go tests
 *.test
 *.out
+coverage.txt
 
 .idea
 
-e2e/*/log-*.txt
-e2e/*/*.pcap
+
