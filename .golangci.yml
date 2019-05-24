@@ -10,8 +10,8 @@ linters-settings:
   dupl:
     threshold: 100
   goconst:
-    min-len: 2
-    min-occurrences: 2
+    min-len: 3
+    min-occurrences: 3
   misspell:
     locale: US
   lll:
@@ -88,6 +88,7 @@ linters:
     - prealloc
     - gochecknoglobals
     - scopelint
+    - dupl
 
 run:
   skip-dirs:
