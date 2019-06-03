@@ -31,3 +31,5 @@ func (a PeerAddress) AddTo(m *stun.Message) error {
 func (a *PeerAddress) GetFrom(m *stun.Message) error {
 	return (*stun.XORMappedAddress)(a).GetFromAs(m, stun.AttrXORPeerAddress)
 }
+
+type XORPeerAddress = PeerAddress

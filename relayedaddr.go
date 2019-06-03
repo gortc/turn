@@ -30,3 +30,5 @@ func (a RelayedAddress) AddTo(m *stun.Message) error {
 func (a *RelayedAddress) GetFrom(m *stun.Message) error {
 	return (*stun.XORMappedAddress)(a).GetFromAs(m, stun.AttrXORRelayedAddress)
 }
+
+type XORRelayedAddress = RelayedAddress
