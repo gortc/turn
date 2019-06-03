@@ -8,9 +8,8 @@ import (
 
 // RelayedAddress implements XOR-RELAYED-ADDRESS attribute.
 //
-// The XOR-PEER-ADDRESS specifies the address and port of the peer as
-// seen from the TURN server. (For example, the peer's server-reflexive
-// transport address if the peer is behind a NAT.)
+// It specifies the address and port that the server allocated to the
+// client. It is encoded in the same way as XOR-MAPPED-ADDRESS.
 //
 // RFC 5766 Section 14.5
 type RelayedAddress struct {
