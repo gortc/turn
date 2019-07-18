@@ -3,7 +3,7 @@ package turn
 import (
 	"net"
 
-	"github.com/pion/stun"
+	"github.com/gortc/stun"
 )
 
 // PeerAddress implements XOR-PEER-ADDRESS attribute.

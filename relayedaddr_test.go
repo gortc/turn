@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/pion/stun"
+	"github.com/gortc/stun"
 )
 
 func TestRelayedAddress(t *testing.T) {

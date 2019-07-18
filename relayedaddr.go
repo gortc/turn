@@ -3,7 +3,7 @@ package turn
 import (
 	"net"
 
-	"github.com/pion/stun"
+	"github.com/gortc/stun"
 )
 
 // RelayedAddress implements XOR-RELAYED-ADDRESS attribute.
