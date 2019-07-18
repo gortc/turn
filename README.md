@@ -1,17 +1,12 @@
-[![Build Status](https://travis-ci.com/gortc/turn.svg?branch=master)](https://travis-ci.com/gortc/turn)
 [![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1)
-[![Build status](https://ci.appveyor.com/api/projects/status/bodd3l5hgu1agxpf/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/turn-gvuk2/branch/master)
 [![GoDoc](https://godoc.org/github.com/gortc/turn?status.svg)](http://godoc.org/github.com/gortc/turn)
 [![codecov](https://codecov.io/gh/gortc/turn/branch/master/graph/badge.svg)](https://codecov.io/gh/gortc/turn)
-[![Go Report](https://goreportcard.com/badge/github.com/gortc/turn)](http://goreportcard.com/report/gortc/turn)
-[![stability-beta](https://img.shields.io/badge/stability-beta-33bbff.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#beta)
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgortc%2Fturn.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgortc%2Fturn?ref=badge_shield)
 
 # TURN
 
 Package turn implements TURN [[RFC5766](https://tools.ietf.org/html/rfc5766)] Traversal Using Relays around NAT.
-Based on [pion/stun](https://github.com/pion/stun) package.
-See [gortcd](https://github.com/gortc/gortcd) for TURN server and [stunc](https://github.com/pion/turnc) for TURN client.
+Based on [gortc/stun](https://github.com/gortc/stun) package.
+See [gortcd](https://github.com/gortc/gortcd) for TURN server and [turnc](https://github.com/gortc/turnc) for TURN client.
 
 ## Supported RFCs
 
@@ -56,3 +51,8 @@ BenchmarkLifetime/AddTo-12           100000000   13.70 ns/op                    
 BenchmarkLifetime/GetFrom-12         200000000    7.10 ns/op                       0 B/op   0 allocs/op
 ok  	github.com/gortc/turn	19.110s
 ```
+
+## Auxiliary statuses 
+- [![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1) — TeamCity aggregated status
+- [![Build Status](https://travis-ci.com/gortc/turn.svg?branch=master)](https://travis-ci.com/gortc/turn) — Travis (fast checks)
+- [![Build status](https://ci.appveyor.com/api/projects/status/bodd3l5hgu1agxpf/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/turn-gvuk2/branch/master) — Appveyor (fast checks, Windows)
