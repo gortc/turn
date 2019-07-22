@@ -1,2 +1,2 @@
-github.com/gortc/stun v1.20.0 h1:7FNyWwjRXVByBItBwpnsv6SZ08UzPfmByLjKmOnpb14=
-github.com/gortc/stun v1.20.0/go.mod h1:/XeODKxk0b1P5pYtdD/ZlOncR7+6XgU4zb9CzJIFJBs=
+gortc.io/stun v1.21.0 h1:hFUdDaQAlnRcrPcUhwPkV+XJWrY1shDjAPG4f8vu5Hw=
+gortc.io/stun v1.21.0/go.mod h1:XD5lpONVyjvV3BgOyJFNo0iv6R2oZB4L+weMqxts+zg=

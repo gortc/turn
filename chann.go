@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 // ChannelNumber represents CHANNEL-NUMBER attribute.

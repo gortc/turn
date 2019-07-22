@@ -5,7 +5,7 @@ package turn
 import (
 	"fmt"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 type attr interface {

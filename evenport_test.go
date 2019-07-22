@@ -3,7 +3,7 @@ package turn
 import (
 	"testing"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 func TestEvenPort(t *testing.T) {

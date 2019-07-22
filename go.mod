@@ -1,5 +1,5 @@
-module github.com/gortc/turn
+module gortc.io/turn
 
 go 1.12
 
-require github.com/gortc/stun v1.20.0
+require gortc.io/stun v1.21.0

@@ -3,7 +3,7 @@ package turn
 import (
 	"time"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 // DefaultLifetime in RFC 5766 is 10 minutes.

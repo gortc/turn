@@ -1,6 +1,6 @@
 package turn
 
-import "github.com/gortc/stun"
+import "gortc.io/stun"
 
 // EvenPort represents EVEN-PORT attribute.
 //
