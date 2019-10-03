@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"gortc.io/stun"
+	"gortc.io/stun/v2"
 )
 
 func TestRelayedAddress(t *testing.T) {

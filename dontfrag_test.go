@@ -3,7 +3,7 @@ package turn
 import (
 	"testing"
 
-	"gortc.io/stun"
+	"gortc.io/stun/v2"
 )
 
 func TestDontFragment(t *testing.T) {

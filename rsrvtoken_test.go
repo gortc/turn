@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"gortc.io/stun"
+	"gortc.io/stun/v2"
 )
 
 func TestReservationToken(t *testing.T) {

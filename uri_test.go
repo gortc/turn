@@ -83,10 +83,6 @@ func TestParseURI(t *testing.T) {
 				in:   "turn://example.org",
 			},
 			{
-				name: "bad port",
-				in:   "turn:example.org:port",
-			},
-			{
 				name: "bad scheme",
 				in:   "tcp:example.org",
 			},

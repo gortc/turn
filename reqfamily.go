@@ -3,7 +3,7 @@ package turn
 import (
 	"errors"
 
-	"gortc.io/stun"
+	"gortc.io/stun/v2"
 )
 
 // RequestedAddressFamily represents the REQUESTED-ADDRESS-FAMILY Attribute as

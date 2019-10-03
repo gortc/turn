@@ -3,7 +3,7 @@ package turn
 import (
 	"testing"
 
-	"gortc.io/stun"
+	"gortc.io/stun/v2"
 )
 
 func TestRequestedAddressFamily(t *testing.T) {

@@ -1,6 +1,6 @@
 package turn
 
-import "gortc.io/stun"
+import "gortc.io/stun/v2"
 
 // DontFragmentAttr represents DONT-FRAGMENT attribute.
 type DontFragmentAttr struct{}
