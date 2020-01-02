@@ -43,6 +43,8 @@ issues:
         - dupl
         - gosec
         - goconst
+        - funlen
+        - gocognit
 
     # Ease some gocritic warnings on test files.
     - path: testutil\.go
@@ -89,6 +91,8 @@ linters:
     - gochecknoglobals
     - scopelint
     - dupl
+    - gomnd
+    - wsl
 
 run:
   skip-dirs:
