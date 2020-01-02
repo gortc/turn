@@ -3,7 +3,7 @@ package turn
 import (
 	"testing"
 
-	"gortc.io/stun/v2"
+	"gortc.io/stun"
 )
 
 func BenchmarkChannelNumber(b *testing.B) {

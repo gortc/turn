@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"gortc.io/stun/v2"
+	"gortc.io/stun"
 )
 
 func TestChromeAllocRequest(t *testing.T) {

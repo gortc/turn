@@ -4,7 +4,7 @@ package turn
 import (
 	"encoding/binary"
 
-	"gortc.io/stun/v2"
+	"gortc.io/stun"
 )
 
 // bin is shorthand for binary.BigEndian.
