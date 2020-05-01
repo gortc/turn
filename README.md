@@ -53,6 +53,6 @@ ok  	github.com/gortc/turn	19.110s
 ```
 
 ## Auxiliary statuses 
-- [![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1) — TeamCity aggregated status
+- [![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:turn_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1) — TeamCity aggregated status
 - [![Build Status](https://travis-ci.com/gortc/turn.svg?branch=master)](https://travis-ci.com/gortc/turn) — Travis (fast checks)
 - [![Build status](https://ci.appveyor.com/api/projects/status/bodd3l5hgu1agxpf/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/turn-gvuk2/branch/master) — Appveyor (fast checks, Windows)
