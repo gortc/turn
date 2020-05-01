@@ -1,6 +1,6 @@
-[![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1)
-[![GoDoc](https://godoc.org/github.com/gortc/turn?status.svg)](http://godoc.org/github.com/gortc/turn)
-[![codecov](https://codecov.io/gh/gortc/turn/branch/master/graph/badge.svg)](https://codecov.io/gh/gortc/turn)
+[![Master status](https://img.shields.io/teamcity/build/s/turn_MasterStatus?server=https%3A%2F%2Ftc.gortc.io)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1)
+[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/gortc.io/turn)
+[![codecov](https://img.shields.io/codecov/c/github/gortc/turn?label=coverage)](https://codecov.io/gh/gortc/turn)
 
 # TURN
 
