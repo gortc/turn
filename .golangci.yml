@@ -83,6 +83,8 @@ issues:
       text: "(unnamedResult|exitAfterDefer)"
       linters:
         - gocritic
+    - linters: [godot]
+      source: "RFC \\d+"
 
 linters:
   enable-all: true
@@ -93,6 +95,8 @@ linters:
     - dupl
     - gomnd
     - wsl
+    - goerr113
+    - testpackage
 
 run:
   skip-dirs:

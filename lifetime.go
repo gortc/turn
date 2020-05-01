@@ -24,7 +24,7 @@ type Lifetime struct {
 	time.Duration
 }
 
-// uint32 seconds
+// uint32 seconds.
 const lifetimeSize = 4 // 4 bytes, 32 bits
 
 // AddTo adds LIFETIME to message.
