@@ -1,5 +1,5 @@
 [![Master status](https://img.shields.io/teamcity/build/s/turn_MasterStatus?server=https%3A%2F%2Ftc.gortc.io)](https://tc.gortc.io/project.html?projectId=turn&tab=projectOverview&guest=1)
-[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/gortc.io/turn)
+[![GoDev](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/gortc.io/turn)
 [![codecov](https://img.shields.io/codecov/c/github/gortc/turn?label=coverage)](https://codecov.io/gh/gortc/turn)
 
 # TURN
